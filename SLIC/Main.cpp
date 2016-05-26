@@ -22,26 +22,26 @@ void convert_label_to_color(string FILE_PATH, vector<vector<float>> &data, int *
 
 int main(int argc, char* argv[]) {
 
-	if (argc != 7) {
-		printf("Arguments is not correct: <m_spcount> <ColorSize> <JpgImage> <DepthImage> <LabelImage> <weight>");
+	if (argc != 6) {
+		printf("Arguments is not correct: <m_spcount> <JpgImage> <DepthImage> <LabelImage> <weight>");
 		getchar();
 		return -1;
 	}
 
 	/* Load the image and convert to Lab colour space. */
 
-	//cv::Mat src = cv::imread(argv[3], 1);
-	cv::Mat pSrc = cv::imread(argv[3], 1);
-	//cv::cvtColer(src, pSrc, CV_BGR2HSV)
-	cv::Mat dSrc = cv::imread(argv[4], CV_LOAD_IMAGE_GRAYSCALE);
-	cv::Mat lSrc = cv::imread(argv[5], CV_LOAD_IMAGE_GRAYSCALE);
+	cv::Mat src = cv::imread(argv[2], 1);
+	cv::Mat pSrc;
+	cv::cvtColor(src, pSrc, CV_BGR2HSV);
+	
+	cv::Mat dSrc = cv::imread(argv[3], CV_LOAD_IMAGE_GRAYSCALE);
+	cv::Mat lSrc = cv::imread(argv[4], CV_LOAD_IMAGE_GRAYSCALE);
 
 
 	
 	int numlabels(0);
-	int block = atoi(argv[2]);
 	int m_spcount = atoi(argv[1]);
-	double weight = atof(argv[6]);;
+	double weight = atof(argv[5]);
 	int height = pSrc.rows;
 	int width = pSrc.cols;
 
@@ -54,23 +54,27 @@ int main(int argc, char* argv[]) {
 
 
 
-	unsigned char r, g, b, d, l;
-	int x = 0;
-	int y = 0;
+	unsigned char b, g, r;
+	unsigned char h, s, v, d, l;
+	float sum_h = 0; float sum_s = 0; float sum_v = 0;
+	int x = 0; float sum_x = 0;
+	int y = 0; float sum_y = 0;
 	int errpix = 0;
 	int adrs = 0;
 	for (int i = 0; i < sz; i++)
 	{
-
-		b = pSrc.data[3 * i];
-		g = pSrc.data[3 * i + 1];
-		r = pSrc.data[3 * i + 2];
+		b = src.data[3 * i];
+		g = src.data[3 * i + 1];
+		r = src.data[3 * i + 2];
 		d = dSrc.data[i];
 		l = lSrc.data[i];
 
 
 		// to get rid of label image noises
-		//printf("(%d , %d) (%d %d %d %d) %d \n", x, y, g, b, r, d, l);
+
+		//printf("(%d , %d) bgr(%d %d %d) \n", x, y, b, g, r);
+		//printf("(%d , %d) hsv(%d %d %d %d) %d \n", x, y, h, s, v, d, l);
+		
 		if (l >= 40) {
 			return 0;
 			for (int j = 0;; j++) {
@@ -104,77 +108,90 @@ int main(int argc, char* argv[]) {
 	SLICOD slicod;
 	slicod.PerformSLICOD_ForGivenK(img, width, height, labels, numlabels, m_spcount, m_compactness, weight);//for a given number K of superpixels
 
-	int rgbdSize = (256 / block) * 4;
-	int rgbdlSize = rgbdSize + 1;
+	//使うデータ長について
+	//H(0~180) を 9 刻みで分割 → 20
+	//s(0~255) を 16 刻みで分割 → 16
+	//v(0~255) を 16 刻みで分割 → 16
+	//Depth(0~255) を 16 刻みで分割 → 16
+	//HSVそれぞれの平均で合計3
+	// x, y で → 2
+	// 対応ラベル → 1
+	// 各スーパーピクセルに含まれるピクセル数  → 1
+	// 合計75
 
+	vector<vector<float>> data(numlabels, vector<float>(75 , 0));
+	vector<vector<unsigned char>> label(numlabels, vector<unsigned char>(38, 0));
 
-	vector<vector<float>> data(numlabels, vector<float>(rgbdlSize, 0));
-	vector<vector<unsigned char>> label(numlabels, vector<unsigned char>(40, 0));
-
-
-	string arg1 = argv[1];
-	string arg2 = argv[2];
-	string arg3 = argv[3];
-	ofstream ofs(arg3 + "_m" + arg1 + "c" + arg2 + ".csv");
-	ofstream ofsLabel(arg3 + "_m" + arg1 + "spmap.csv");
+	int dataSize = 73;
+	int labelCol = dataSize;
+	int pixelSumCol = labelCol + 1;
+	string jpgPath = argv[2];
+	string s_m = argv[1];
+	ofstream ofs(jpgPath + "_m" + s_m + "HSV.csv");
+	ofstream ofs_spmap(jpgPath + "_m" + s_m + "spmap.csv");
 	x = 0;
 	y = 0;
 	for (int i = 0; i < sz; i++)
 	{
+
+		h = pSrc.data[3 * i];
+		s = pSrc.data[3 * i + 1];
+		v = pSrc.data[3 * i + 2];
+		data[labels[i]][68] += h;
+		data[labels[i]][69] += s;
+		data[labels[i]][70] += v;
+		data[labels[i]][71] += x;
+		data[labels[i]][72] += y;
+
 		//printf("(%d , %d) %d \n", x, y, labels[i]);
-		b = (unsigned char)pSrc.data[3 * i] / block;
-		g = (unsigned char)pSrc.data[3 * i + 1] / block;
-		r = (unsigned char)pSrc.data[3 * i + 2] / block;
-		d = (unsigned char)dSrc.data[i] / block;
+		h = (unsigned char)h / 20;
+		if (h >= 20) h = 19;
+		s = (unsigned char)s / 16;
+		v = (unsigned char)v / 16;
+
+		d = (unsigned char)dSrc.data[i] / 16;
 		l = (unsigned char)lSrc.data[i];
 
 
-		//printf("(%d , %d) (%d %d %d %d) %d \n", x, y, g, b ,r, d ,l);
-		data[labels[i]][b] += 1;
-		data[labels[i]][g + 256 / block] += 1;
-		data[labels[i]][r + 2 * 256 / block] += 1;
-		data[labels[i]][d + 3 * 256 / block] += 1;
+		//printf("(%d , %d) (%d %d %d %d) %d \n", x, y, h, s ,v, d ,l);
+		data[labels[i]][h] += 1;
+		data[labels[i]][s + 20] += 1;
+		data[labels[i]][v + 36] += 1;
+		data[labels[i]][d + 52] += 1;
+		data[labels[i]][labelCol] += 1;
+		data[labels[i]][pixelSumCol] += 1;
 
 		// 怪しいとこその一
 		label[labels[i]][l] += 1;
 
 		//ofsLabel << "("+to_string(labels[i])+",L" + to_string(l) + ")";
-		ofsLabel << to_string(labels[i]);
+		ofs_spmap << to_string(labels[i]);
 		//printf("%d, %d, ", labels[i], label[labels[i]][l]);
 		x++;
 		if (x >= width) {
-			ofsLabel << endl;
+			ofs_spmap << endl;
 			x = 0;
 			y++;
 			//printf("\n");
 		}
 		else {
-			ofsLabel << ",";
+			ofs_spmap << ",";
 		}
 
 	}
 
-
-	vector<double> N(numlabels, 0);
-
-	for (int i = 0; i < numlabels; i++) {
-		for (int j = 0; j < rgbdSize; j++) {
-			//N[i] +=  data[i][j] * data[i][j];
-			N[i] += data[i][j];
-		}
-	}
 	int max = 0;
 	int maxLabel = 0;
 	for (int i = 0; i < numlabels; i++) {
 		max = 0;
 		maxLabel = 0;
-		for (int j = 0; j < 40; j++) {
+		for (int j = 0; j < 38; j++) {
 			if (max < label[i][j]) {
 				max = label[i][j];
 				maxLabel = j;
 			}
 		}
-		data[i][rgbdSize] = maxLabel;
+		data[i][labelCol] = maxLabel;
 	}
 	
 
@@ -190,16 +207,18 @@ int main(int argc, char* argv[]) {
 
 
 	for (int i = 0; i < numlabels; i++) {
-		for (int j = 0; j < rgbdSize; j++) {
+		printf("%d [ ", i);
+		for (int j = 0; j < dataSize; j++) {
 			//ofs << to_string(data[i][j]/ (sqrt(N[i]))) + ",";
-			ofs << to_string(data[i][j] / (N[i])) + ",";
+			printf("%f, ", data[i][j] / (data[i][pixelSumCol]) );
+			ofs << to_string(data[i][j] / (data[i][pixelSumCol])) + ",";
 		}
-		ofs << to_string(data[i][rgbdSize]) << endl;
+		printf(" ] %f \n", data[i][labelCol]);
+		ofs << to_string(data[i][labelCol]) << endl;
 	}
 
 
-
-	convert_label_to_color(argv[5], data, labels);
+	//convert_label_to_color(argv[5], data, labels);
 	//getchar();
 
 	if (labels) delete[] labels;
