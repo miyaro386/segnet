@@ -82,7 +82,7 @@ void SLICOD::RGB2XYZ(
 	double R = sR / 255.0;
 	double G = sG / 255.0;
 	double B = sB / 255.0;
-	double Dep = sD / 255.0;
+	//double Dep = sD / 255.0;
 
 	double r, g, b, d;
 
@@ -92,13 +92,14 @@ void SLICOD::RGB2XYZ(
 	else				g = pow((G + 0.055) / 1.055, 2.4);
 	if (B <= 0.04045)	b = B / 12.92;
 	else				b = pow((B + 0.055) / 1.055, 2.4);
-	if (Dep <= 0.04045)	d = Dep / 12.92;
-	else				d = pow((Dep + 0.055) / 1.055, 2.4);
+	//if (Dep <= 0.04045)	d = Dep / 12.92;
+	//else				d = pow((Dep + 0.055) / 1.055, 2.4);
 
 	X = r*0.4124564 + g*0.3575761 + b*0.1804375;
 	Y = r*0.2126729 + g*0.7151522 + b*0.0721750;
 	Z = r*0.0193339 + g*0.1191920 + b*0.9503041;
-	D = r*0.1000000 + g*0.1000000 + b*0.1000000 + d*0.700000;
+	//D = d
+	D = sD;
 	//printf("s(%d,%d,%d,%d) to X(%f,%f,%f,%f) \n", sR, sG, sB, sD, X, Y, Z, D);
 }
 
@@ -127,7 +128,7 @@ void SLICOD::RGB2LAB(const int& sR, const int& sG, const int& sB, const int& sD,
 	double xr = X / Xr;
 	double yr = Y / Yr;
 	double zr = Z / Zr;
-	double dr = D / Dr;
+	//double dr = D / Dr;
 
 	double fx, fy, fz, fd;
 	if (xr > epsilon)	fx = pow(xr, 1.0 / 3.0);
@@ -136,14 +137,15 @@ void SLICOD::RGB2LAB(const int& sR, const int& sG, const int& sB, const int& sD,
 	else				fy = (kappa*yr + 16.0) / 116.0;
 	if (zr > epsilon)	fz = pow(zr, 1.0 / 3.0);
 	else				fz = (kappa*zr + 16.0) / 116.0;
-	if (dr > epsilon)	fd = pow(dr, 1.0 / 3.0);
-	else				fd = (kappa*dr + 16.0) / 116.0;
+	//if (dr > epsilon)	fd = pow(dr, 1.0 / 3.0);
+	//else				fd = (kappa*dr + 16.0) / 116.0;
 
 	lval = 116.0*fy - 16.0;
 	aval = 500.0*(fx - fy);
 	bval = 200.0*(fy - fz);
-	dval = 100.0*(fd - fx);
+	dval = D;
 	//printf("X(%f,%f,%f,%f) to val(%f,%f,%f,%f) \n", X, Y, Z, D, lval, aval, bval, dval);
+	//getchar();
 
 }
 
@@ -347,6 +349,7 @@ void SLICOD::DetectLabEdges(
 	vector<double>&				edges)
 {
 	int sz = width*height;
+	double weight = m_weight;
 
 	edges.resize(sz, 0);
 	for (int j = 1; j < height - 1; j++)
@@ -355,17 +358,33 @@ void SLICOD::DetectLabEdges(
 		{
 			int i = j*width + k;
 
-			double dx = (lvec[i - 1] - lvec[i + 1])*(lvec[i - 1] - lvec[i + 1]) +
-				(avec[i - 1] - avec[i + 1])*(avec[i - 1] - avec[i + 1]) +
-				(bvec[i - 1] - bvec[i + 1])*(bvec[i - 1] - bvec[i + 1]) +
-				(dvec[i - 1] - dvec[i + 1])*(dvec[i - 1] - dvec[i + 1]);
+			double xdd = 0;
+			double ydd = 0;
+			double tempx = dvec[i - 1] - dvec[i + 1];
+			//printf("%f \n",tempx);
+			double tempy = dvec[i - width] - dvec[i + width];
+			if (tempx*tempx*tempx*tempx > 700)
+				xdd = tempx*tempx + 7000;
+			else xdd = tempx*tempx*tempx*tempx * 10;
+			if (tempy*tempy*tempy*tempy > 700)
+				ydd = tempy*tempy + 7000;
+			else ydd = tempy*tempy*tempy*tempy * 10;
+				
+			double dx = (1 - weight) * ((lvec[i - 1] - lvec[i + 1])*(lvec[i - 1] - lvec[i + 1]) +
+										(avec[i - 1] - avec[i + 1])*(avec[i - 1] - avec[i + 1]) +
+										(bvec[i - 1] - bvec[i + 1])*(bvec[i - 1] - bvec[i + 1])) +
+							weight  *	xdd;
 
-			double dy = (lvec[i - width] - lvec[i + width])*(lvec[i - width] - lvec[i + width]) +
-				(avec[i - width] - avec[i + width])*(avec[i - width] - avec[i + width]) +
-				(bvec[i - width] - bvec[i + width])*(bvec[i - width] - bvec[i + width]) +
-				(dvec[i - width] - dvec[i + width])*(dvec[i - width] - dvec[i + width]);
+			double dy = (1 - weight) * ((lvec[i - width] - lvec[i + width])*(lvec[i - width] - lvec[i + width]) +
+										(avec[i - width] - avec[i + width])*(avec[i - width] - avec[i + width]) +
+										(bvec[i - width] - bvec[i + width])*(bvec[i - width] - bvec[i + width])) +
+							weight  *	ydd;
 			//edges[i] = (sqrt(dx) + sqrt(dy));
 			edges[i] = (dx + dy);
+			//printf("(%f, %f, %f, %f)\n", (lvec[i - 1] - lvec[i + 1])*(lvec[i - 1] - lvec[i + 1]), (avec[i - 1] - avec[i + 1])*(avec[i - 1] - avec[i + 1]), (bvec[i - 1] - bvec[i + 1])*(bvec[i - 1] - bvec[i + 1]), (dvec[i - 1] - dvec[i + 1])*(dvec[i - 1] - dvec[i + 1]));
+			//printf("(%f, %f, %f, %f)\n",(lvec[i - width] - lvec[i + width])*(lvec[i - width] - lvec[i + width]),(avec[i - width] - avec[i + width])*(avec[i - width] - avec[i + width]),(bvec[i - width] - bvec[i + width])*(bvec[i - width] - bvec[i + width]),(dvec[i - width] - dvec[i + width])*(dvec[i - width] - dvec[i + width]));
+			//printf("(%f, %f)", dx, dy);
+			//getchar();
 		}
 	}
 }
@@ -578,7 +597,10 @@ void SLICOD::PerformSuperpixelSegmentation_VariableSandM(
 	const int&					STEP,
 	const int&					NUMITR)
 {
+
+
 	int sz = m_width*m_height;
+	double weight = m_weight;
 	const int numk = kseedsl.size();
 	//double cumerr(99999.9);
 	int numitr(0);
@@ -640,10 +662,20 @@ void SLICOD::PerformSuperpixelSegmentation_VariableSandM(
 					double a = m_avec[i];
 					double b = m_bvec[i];
 					double d = m_dvec[i];
-					distlab[i] = (l - kseedsl[n])*(l - kseedsl[n]) +
-						(a - kseedsa[n])*(a - kseedsa[n]) +
-						(b - kseedsb[n])*(b - kseedsb[n])+
-						(d - kseedsd[n])*(d - kseedsd[n]);
+
+					double xdd = 0;
+					double ydd = 0;
+					double tempx = d - kseedsd[n];
+					//printf("%f \n",tempx);
+					if (tempx*tempx*tempx*tempx > 300)
+						xdd = tempx*tempx + 3000;
+					else xdd = tempx*tempx*tempx*tempx * 10;
+
+				
+					distlab[i] = (1-weight)	*(  (l - kseedsl[n])*(l - kseedsl[n]) +
+												(a - kseedsa[n])*(a - kseedsa[n]) +
+												(b - kseedsb[n])*(b - kseedsb[n]) ) +
+								   weight   *   (d - kseedsd[n])*(d - kseedsd[n]);
 					distxy[i] = (x - kseedsx[n])*(x - kseedsx[n]) +
 						(y - kseedsy[n])*(y - kseedsy[n]);
 
@@ -651,9 +683,19 @@ void SLICOD::PerformSuperpixelSegmentation_VariableSandM(
 					double dist = distlab[i] / maxlab[n] + distxy[i] * invxywt;//only varying m, prettier superpixels
 																			   //double dist = distlab[i]/maxlab[n] + distxy[i]/maxxy[n];//varying both m and S
 																			   //------------------------------------------------------------------------
-
+					//printf("(%f, %f, %f, %f)\n", l, a, b, d);
+					//printf("(%f, %f, %f, %f)\n", (l - kseedsl[n])*(l - kseedsl[n]), (a - kseedsa[n])*(a - kseedsa[n]), (b - kseedsb[n])*(b - kseedsb[n]), (d - kseedsd[n])*(d - kseedsd[n]));
+					//printf("(%f, %f )\n", distlab[i], distxy[i]);
+					//getchar();
+					
 					if (dist < distvec[i])
 					{
+						//printf("(%f, %f, %f, %f)\n", l, a, b, d);
+						//printf("(%f, %f, %f, %f)\n", (l - kseedsl[n])*(l - kseedsl[n]), (a - kseedsa[n])*(a - kseedsa[n]), (b - kseedsb[n])*(b - kseedsb[n]), (d - kseedsd[n])*(d - kseedsd[n]));
+						//printf("(%f, %f) %f %d \n", distlab[i], distxy[i], dist, n);
+						//printf("(%f, %f) %f %d \n", d, kseedsd[n], dist, n);
+						//getchar();
+
 						distvec[i] = dist;
 						klabels[i] = n;
 					}
@@ -907,7 +949,8 @@ void SLICOD::PerformSLICOD_ForGivenK(
 	int*						klabels,
 	int&						numlabels,
 	const int&					K,//required number of superpixels
-	const double&				m)//weight given to spatial distance
+	const double&				m,
+	const double				weight)//weight given to spatial distance
 {
 	vector<double> kseedsl(0);
 	vector<double> kseedsa(0);
@@ -919,12 +962,12 @@ void SLICOD::PerformSLICOD_ForGivenK(
 	//--------------------------------------------------
 	m_width = width;
 	m_height = height;
+	m_weight = weight;
 	int sz = m_width*m_height;
 	//--------------------------------------------------
 	//if(0 == klabels) klabels = new int[sz];
 	for (int s = 0; s < sz; s++) klabels[s] = -1;
 	//--------------------------------------------------
-	printf("1 ");
 	if (1)//LAB
 	{
 		DoRGBtoLABConversion(ubuff, m_lvec, m_avec, m_bvec, m_dvec);
@@ -935,23 +978,19 @@ void SLICOD::PerformSLICOD_ForGivenK(
 		for (int i = 0; i < sz; i++)
 		{
 			m_lvec[i] = ubuff[i] >> 16 & 0xff;
-			m_avec[i] = ubuff[i] >> 8 & 0xff;
-			m_bvec[i] = ubuff[i]      & 0xff;
+			m_avec[i] = ubuff[i] >> 8  & 0xff;
+			m_bvec[i] = ubuff[i]       & 0xff;
 			m_dvec[i] = ubuff[i] >> 24 & 0xff;
 		}
 	}
 	//--------------------------------------------------
-	printf("2 ");
 	bool perturbseeds(true);
 	vector<double> edgemag(0);
 
 	if (perturbseeds) DetectLabEdges(m_lvec, m_avec, m_bvec, m_dvec, m_width, m_height, edgemag);
-	printf("3 ");
 	GetLABXYSeeds_ForGivenK(kseedsl, kseedsa, kseedsb, kseedsd, kseedsx, kseedsy, K, perturbseeds, edgemag);
-	printf("4 ");
 	int STEP = sqrt(double(sz) / double(K)) + 2.0;//adding a small value in the even the STEP size is too small.
 	PerformSuperpixelSegmentation_VariableSandM(kseedsl, kseedsa, kseedsb, kseedsd, kseedsx, kseedsy, klabels, STEP, 10);
-	printf("5 ");
 	numlabels = kseedsl.size();
 	int* nlabels = new int[sz];
 	EnforceLabelConnectivity(klabels, m_width, m_height, nlabels, numlabels, K);

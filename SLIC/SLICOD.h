@@ -58,7 +58,8 @@ public:
 		int*						klabels,
 		int&						numlabels,
 		const int&					K,
-		const double&				m);
+		const double&				m,
+		const double				weight);
 
 	//============================================================================
 	// Save superpixel labels in a text file in raster scan order
@@ -209,6 +210,7 @@ private:
 private:
 	int										m_width;
 	int										m_height;
+	double									m_weight;
 	int										m_depth;
 	int										img_depth;
 
