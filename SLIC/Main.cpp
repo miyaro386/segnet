@@ -41,7 +41,13 @@ enum Index {
 	V_AVE,
 	D_AVE,
 	X_AVE,	
-	Y_AVE,						//ここまでのデータは平均を取る
+	Y_AVE,						//ここまでのデータはループで平均を取る
+	H_DIFF,
+	S_DIFF,
+	V_DIFF,
+	D_DIFF,
+	DIST_AVE,
+	DIST_MAX,
 	//HOG,		
 	//GRAD_DIRECT = HOG  + 9,
 	//SP_DENSE = GRAD_DIRECT + 18,
@@ -225,7 +231,7 @@ int main(int argc, char* argv[]) {
 	//getchar();
 	int div_num = int(sqrt(m_spcount/4)/10) * 10;
 	int xMax = int(width / div_num);
-	int yMax = int(height / div_num);;
+	int yMax = int(height / div_num);
 	//printf("%d\n", div_num);
 	
 	vector< vector< vector<int> > > XYsec( yMax + 1, vector< vector<int> >(xMax + 1, vector<int>(0)));
@@ -235,6 +241,10 @@ int main(int argc, char* argv[]) {
 		for (int j = 0; j < Y_AVE+1; j++) {
 			data[i][j] = data[i][j] / (data[i][PIXEL_SUM]);
 		}
+
+
+
+		//近い4つのスーパーピクセルを取得する用
 		data[i][X_AVE] = (int)data[i][X_AVE];
 		data[i][Y_AVE] = (int)data[i][Y_AVE];		
 		XYsec[(int)data[i][Y_AVE]/ div_num][(int)data[i][X_AVE]/ div_num].push_back(i);
@@ -293,11 +303,12 @@ int main(int argc, char* argv[]) {
 		for (int j = 0; j < closeLabel.size(); j++) {
 			if (i == closeLabel[j])continue;
 			dist = abs(data[i][X_AVE] - data[closeLabel[j]][X_AVE]) + abs(data[i][Y_AVE] - data[closeLabel[j]][Y_AVE]);
-			for (int k = 0; k < 4; k++) {
+			
+			for (int k = 0; k < min.size(); k++) {
 				//min[0]が常に最も小さい
 				//min[k] より小さいと分かればk以降のminは後ろにプッシュされる
 				if (min[k] >= dist) {
-					for (int l = 3; l > k; l--) {
+					for (int l = min.size() -1; l > k; l--) {
 						min[l] = min[l - 1];
 						tempLabel[l] = tempLabel[l - 1];
 					}
@@ -306,10 +317,13 @@ int main(int argc, char* argv[]) {
 					break;
 				}
 			}
-
 			//printf("%d, ", closeLabel[j]);
 		}//最も近いものの計算は終了
 
+		for (int k = 0; k < min.size(); k++)
+			data[i][DIST_AVE] += min[k];
+		data[i][DIST_AVE] = data[i][DIST_AVE] / min.size();
+		data[i][DIST_MAX] = min[min.size() - 1];
 		//printf("\n");
 
 		data[i][CLOSE1] = tempLabel[0];
@@ -322,8 +336,9 @@ int main(int argc, char* argv[]) {
 	}
 
 
-	//PLANET_NORM算出
+	
 	for (int i = 0; i < numlabels; i++) {
+		//PLANET_NORM算出
 		vector<vector<float>> vec(4, vector<float>(3, 0));
 		vector<vector<float>> faceVec(4, vector<float>(3, 0));
 		vec[0][0] = data[data[i][CLOSE1]][X_AVE] - data[i][X_AVE];
@@ -362,9 +377,24 @@ int main(int argc, char* argv[]) {
 
 		}
 		float norm = sqrt(data[i][PLANE_NORMAL_X] * data[i][PLANE_NORMAL_X] + data[i][PLANE_NORMAL_Y] * data[i][PLANE_NORMAL_Y] + data[i][PLANE_NORMAL_Z] * data[i][PLANE_NORMAL_Z]);
-		data[i][PLANE_NORMAL_X] = data[i][PLANE_NORMAL_X] / norm;
-		data[i][PLANE_NORMAL_Y] = data[i][PLANE_NORMAL_Y] / norm;
-		data[i][PLANE_NORMAL_Z] = data[i][PLANE_NORMAL_Z] / norm;
+		if (norm != 0) {
+			data[i][PLANE_NORMAL_X] = data[i][PLANE_NORMAL_X] / norm;
+			data[i][PLANE_NORMAL_Y] = data[i][PLANE_NORMAL_Y] / norm;
+			data[i][PLANE_NORMAL_Z] = data[i][PLANE_NORMAL_Z] / norm;
+		}
+		else {
+			data[i][PLANE_NORMAL_X] = 0;
+			data[i][PLANE_NORMAL_Y] = 0;
+			data[i][PLANE_NORMAL_Z] = 0;
+		}
+
+		for			(int j = CLOSE1; j < CLOSE4; j++) {
+			data[i][H_DIFF] = abs(data[data[i][j]][H_AVE] - data[i][H_AVE]);
+			data[i][S_DIFF] = abs(data[data[i][j]][S_AVE] - data[i][S_AVE]);
+			data[i][V_DIFF] = abs(data[data[i][j]][V_AVE] - data[i][V_AVE]);
+			data[i][D_DIFF] = abs(data[data[i][j]][D_AVE] - data[i][D_AVE]);
+		}
+
 
 	}
 

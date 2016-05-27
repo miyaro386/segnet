@@ -1,7 +1,10 @@
 import cv2
 import numpy as np
 import collections
+import CSVReader
 
+import csv
+import os
 
 def GetRGBDVecList(jpg_img, depth_img, label_img, cut_size):
 
@@ -120,3 +123,75 @@ def get_vec_list_fast(test_img, label_img, cut_size):
 
     result = collections.namedtuple('result', 'vec_list, label_list')
     return result(vec_list=vec_list, label_list=label_list)
+
+
+def convert_sp_to_rgbdrate(m):
+
+
+
+    cmd = u'"slic\SLICOSuperpixel.exe"'
+    #os.system(cmd+" 300 img.jpg dep.png label.png");
+
+    src_jpg_path = CSVReader.get_path_list2('SUNRGBDMeta_reduced.csv',4)
+    src_dep_path = CSVReader.get_path_list2('SUNRGBDMeta_reduced.csv',3)
+    src_label_path = CSVReader.get_path_list2('SUNRGBDMeta_reduced.csv',9)
+
+    jpg_path = []
+    dep_path = []
+    label_path = []
+    line = []
+
+    for i in range(5001):
+
+        jpg_path.append(src_jpg_path[2*i+1])
+        dep_path.append(src_dep_path[2*i+1])
+        label_path.append(src_label_path[2*i+1])
+
+
+    if not os.path.exists('./output/csvpath'):
+        os.makedirs('./output/csvpath')
+    f = open("./output/csvpath/spdata_path_m"+m+"HSV.csv", 'w')
+    writer = csv.writer(f, lineterminator='\n')
+    print "making training HSV data"
+    for i in range(5000,5001):
+        #if os.path.exists(jpg_path[i]+"_m"+m+"HSV.csv"):
+        #    print "pass",i,jpg_path[i]
+        #else:
+        #    print "inputting",i,jpg_path[i]
+        #    os.system(cmd+" "+ m +" "+jpg_path[i]+" "+dep_path[i]+" "+label_path[i]+" 0");
+        print "inputting",i,jpg_path[i]
+        os.system(cmd+" "+ m +" "+jpg_path[i]+" "+dep_path[i]+" "+label_path[i]+" 0");
+        
+        
+    print "HSV data Complete"
+    f.close()
+
+def sp_data_path(m):
+    
+
+    src_jpg_path = CSVReader.get_path_list2('SUNRGBDMeta_reduced.csv',4)
+    src_dep_path = CSVReader.get_path_list2('SUNRGBDMeta_reduced.csv',3)
+    src_label_path = CSVReader.get_path_list2('SUNRGBDMeta_reduced.csv',9)
+
+    jpg_path = []
+    dep_path = []
+    label_path = []
+    line = []
+
+    if not os.path.exists('./output/csvpath'):
+        os.makedirs('./output/csvpath')
+    f = open("./output/csvpath/spdata_path_m"+m+"HSV.csv", 'w')
+    writer = csv.writer(f, lineterminator='\n')
+
+    for i in range(5001):
+
+        jpg_path.append(src_jpg_path[2*i+1])
+        dep_path.append(src_dep_path[2*i+1])
+        label_path.append(src_label_path[2*i+1])
+        line = [jpg_path[i]+"_m"+m+"HSV.csv",jpg_path[i]+"_m"+m+"spmap.csv"]
+        writer.writerow(line)
+
+def chk_spdata():
+    return 0
+
+    
