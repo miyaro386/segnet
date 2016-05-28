@@ -8,6 +8,7 @@
 #include <opencv/cv.h>
 #include <opencv/highgui.h>
 #include <stdio.h>
+#define _USE_MATH_DEFINES
 #include <math.h>
 #include <vector>
 #include <float.h>
@@ -26,10 +27,11 @@ void convert_label_to_color(string FILE_PATH, vector<vector<float>> &data, int *
 //v(0~255) を 16 刻みで分割 → 16
 //Depth(0~255) を 32 刻みで分割 → 8
 //HSVそれぞれの平均で合計3
+//各スーパーピクセルに含まれるピクセル数  → 1
 // x, y で → 2
-// ここまで最終的に平均を取るdataSize = 73
+// ここまで最終的に平均を取るdataSize = 
 // 対応ラベル → 1
-// 各スーパーピクセルに含まれるピクセル数  → 1
+// 
 // 合計75
 enum Index {
 	H = 0,			
@@ -48,19 +50,22 @@ enum Index {
 	D_DIFF,
 	DIST_AVE,
 	DIST_MAX,
-	//HOG,		
-	//GRAD_DIRECT = HOG  + 9,
+	HOG,
+	HOG_TEX = HOG  + 9,
+	HOG_TEX_MAX,
+	HOG_TEX_MIN,
 	//SP_DENSE = GRAD_DIRECT + 18,
 	SP_DENSE,
 	PLANE_NORMAL_X,
 	PLANE_NORMAL_Y,
 	PLANE_NORMAL_Z,
+	PIXEL_SUM,
 	LABEL,						//データ出力はここまで
 	CLOSE1,
 	CLOSE2,
 	CLOSE3,
 	CLOSE4,
-	PIXEL_SUM,					//ラスト 配列確保に使うので固定
+	LAST					//ラスト 配列確保に使うので固定
 };
 
 int main(int argc, char* argv[]) {
@@ -89,7 +94,7 @@ int main(int argc, char* argv[]) {
 	int sz = width*height;
 	int* labels = new int[sz];
 	vector<float> gradStren(sz, 0);
-	vector<float> gradDirec(sz, 0);
+	vector<int> gradDirec(sz, 0);
 	unsigned int* img = new unsigned int[sz];
 	double m_compactness = 20;
 	if (m_spcount > sz) printf("Number of superpixels exceeds number of pixels in the image");
@@ -109,17 +114,22 @@ int main(int argc, char* argv[]) {
 		l = lSrc.data[i];
 
 		//calculate grad of each pixel
-		if (x == 0)				gradx = pSrc.data[3 * i	   ] - pSrc.data[3 * i + 1];
-		else if (x == width -1) gradx = pSrc.data[3 * i - 1] - pSrc.data[3 * i	  ];
-		else					gradx = pSrc.data[3 * i - 1] - pSrc.data[3 * i + 1];
+		if (x == 0)				gradx = pSrc.data[3 * i	   ] - pSrc.data[3 * (i + 1)];
+		else if (x == width -1) gradx = pSrc.data[3 * (i - 1)] - pSrc.data[3 * i	  ];
+		else					gradx = pSrc.data[3 * (i - 1)] - pSrc.data[3 * (i + 1)];
 
-		if (y == 0)				  grady = pSrc.data[3 * i		 ] - pSrc.data[3 * i + width];
-		else if (y == height - 1) grady = pSrc.data[3 * i - width] - pSrc.data[3 * i		];
-		else					  grady = pSrc.data[3 * i - width] - pSrc.data[3 * i + width];
+		if (y == 0)				  grady = pSrc.data[3 * i		 ] - pSrc.data[3 * (i + width)];
+		else if (y == height - 1) grady = pSrc.data[3 * (i - width)] - pSrc.data[3 * i		];
+		else					  grady = pSrc.data[3 * (i - width)] - pSrc.data[3 * (i + width)];
 
-		gradStren[i] = abs(gradx) + abs(grady);
-		gradDirec[i] = (float)atan2(grady, gradx); // note: this incledes minus
-		//printf("%f, ", gradDirec[i]);
+	
+		
+		gradStren[i] =  sqrt(gradx * gradx + grady * grady);
+		//printf("(%d, %d), ", gradx, grady);
+		//printf("%f, ", gradStren[i]);
+		gradDirec[i] = (int)9 * abs(atan2(grady, gradx)) / (M_PI); // note: this is converted int 0~8 
+		if (gradDirec[i] >=  9) gradDirec[i] = 8;
+
 		//printf("(%d , %d) bgr(%d %d %d) \n", x, y, b, g, r);
 		//printf("(%d , %d) hsv(%d %d %d %d) %d \n", x, y, h, s, v, d, l);
 
@@ -139,7 +149,8 @@ int main(int argc, char* argv[]) {
 	slicod.PerformSLICOD_ForGivenK(img, width, height, labels, numlabels, m_spcount, m_compactness, weight);//for a given number K of superpixels
 
 
-	vector<vector<float>> data(numlabels, vector<float>(PIXEL_SUM + 1, 0));
+	vector<vector<float>> data(numlabels, vector<float>(LAST +1 , 0));
+	vector<vector<float>> hog(numlabels, vector<float>(9, 0));
 	vector<vector<unsigned char>> label(numlabels, vector<unsigned char>(38, 0));
 
 	int dataSize = Y_AVE + 1;
@@ -163,6 +174,8 @@ int main(int argc, char* argv[]) {
 		data[labels[i]][D_AVE] += d;
 		data[labels[i]][X_AVE] += x;
 		data[labels[i]][Y_AVE] += y;
+		data[labels[i]][gradDirec[i] + HOG] += gradStren[i];
+		
 
 		//printf("(%d , %d) %d \n", x, y, labels[i]);
 		h = (unsigned char)h / 20;
@@ -198,10 +211,7 @@ int main(int argc, char* argv[]) {
 			ofs_spmap << ",";
 		}
 
-	}
-
-
-
+	}// スーパーピクセル毎のデータ取得完了
 
 
 	//正解ラベルを取得
@@ -229,20 +239,35 @@ int main(int argc, char* argv[]) {
 	//	printf(" ] %f \n", data[i][rgbdSize]);
 	//}
 	//getchar();
+
 	int div_num = int(sqrt(m_spcount/4)/10) * 10;
 	int xMax = int(width / div_num);
 	int yMax = int(height / div_num);
-	//printf("%d\n", div_num);
 	
 	vector< vector< vector<int> > > XYsec( yMax + 1, vector< vector<int> >(xMax + 1, vector<int>(0)));
 
-	//平均を取るべきところまで計算
+	
 	for (int i = 0; i < numlabels; i++) {
+		//平均を取るべきところまで計算
 		for (int j = 0; j < Y_AVE+1; j++) {
 			data[i][j] = data[i][j] / (data[i][PIXEL_SUM]);
 		}
 
-
+		//HOG算出
+		double norm = 0;
+		for (int j = 0; j < 9 ; j++) {
+			norm += data[i][j + HOG] * data[i][j + HOG];
+		}
+		if (norm == 0) {
+			//printf("norm is 0");
+			norm = 1;
+		}
+		norm = sqrt(norm);
+		//printf("%f ", norm);
+		for (int j = 0; j < 9; j++) {
+			data[i][j + HOG] = data[i][j + HOG] / norm;
+			data[i][HOG_TEX] += data[i][j + HOG];
+		}
 
 		//近い4つのスーパーピクセルを取得する用
 		data[i][X_AVE] = (int)data[i][X_AVE];
@@ -330,7 +355,7 @@ int main(int argc, char* argv[]) {
 		data[i][CLOSE2] = tempLabel[1];
 		data[i][CLOSE3] = tempLabel[2];
 		data[i][CLOSE4] = tempLabel[3];
-		//printf("%f, %f, %f, %f \n", data[i][CLOSE1], data[i][CLOSE2], data[i][CLOSE3], data[i][CLOSE4]);
+		//printf (" %d is near (%f, %f, %f, %f) \n", i,data[i][CLOSE1], data[i][CLOSE2], data[i][CLOSE3], data[i][CLOSE4]);
 
 		//getchar();
 	}
@@ -376,7 +401,7 @@ int main(int argc, char* argv[]) {
 			data[i][PLANE_NORMAL_Z] += faceVec[m][2];
 
 		}
-		float norm = sqrt(data[i][PLANE_NORMAL_X] * data[i][PLANE_NORMAL_X] + data[i][PLANE_NORMAL_Y] * data[i][PLANE_NORMAL_Y] + data[i][PLANE_NORMAL_Z] * data[i][PLANE_NORMAL_Z]);
+		double norm = sqrt(data[i][PLANE_NORMAL_X] * data[i][PLANE_NORMAL_X] + data[i][PLANE_NORMAL_Y] * data[i][PLANE_NORMAL_Y] + data[i][PLANE_NORMAL_Z] * data[i][PLANE_NORMAL_Z]);
 		if (norm != 0) {
 			data[i][PLANE_NORMAL_X] = data[i][PLANE_NORMAL_X] / norm;
 			data[i][PLANE_NORMAL_Y] = data[i][PLANE_NORMAL_Y] / norm;
@@ -388,13 +413,22 @@ int main(int argc, char* argv[]) {
 			data[i][PLANE_NORMAL_Z] = 0;
 		}
 
-		for			(int j = CLOSE1; j < CLOSE4; j++) {
+		for (int j = CLOSE1; j < CLOSE4; j++) {
 			data[i][H_DIFF] = abs(data[data[i][j]][H_AVE] - data[i][H_AVE]);
 			data[i][S_DIFF] = abs(data[data[i][j]][S_AVE] - data[i][S_AVE]);
 			data[i][V_DIFF] = abs(data[data[i][j]][V_AVE] - data[i][V_AVE]);
 			data[i][D_DIFF] = abs(data[data[i][j]][D_AVE] - data[i][D_AVE]);
 		}
 
+		//近くのスーパーピクセルから最大の
+		data[i][HOG_TEX_MAX] = data[i][HOG_TEX];
+		data[i][HOG_TEX_MIN] = data[i][HOG_TEX];
+		for (int j = CLOSE1; j < CLOSE4; j++) {
+			if (data[i][HOG_TEX_MAX] < data[data[i][j]][HOG_TEX])
+				data[i][HOG_TEX_MAX] = data[data[i][j]][HOG_TEX];
+			if (data[i][HOG_TEX_MIN] > data[data[i][j]][HOG_TEX])
+				data[i][HOG_TEX_MAX] = data[data[i][j]][HOG_TEX];
+		}
 
 	}
 
