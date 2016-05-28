@@ -16,7 +16,8 @@ class MLRF:
     start_num = 0
     end_num = 0
     forest_path = ""
-    mlrf = RandomForestClassifier( warm_start=True)
+    #warm_start こいつがすべてのバグの元凶
+    mlrf = RandomForestClassifier()
     lrforests = []
     m = "3000"
     cs = "4"
@@ -29,6 +30,7 @@ class MLRF:
         self.forest_path = './supervised/MLRF_data'+str(start_num)+'-'+str(end_num)
         self.mlrf = self.laod_forest()
 
+    #ロードはうまく行く
     def laod_forest(self):
         if os.path.exists(self.forest_path+'/forest.bin'):
             for i in range(38):
@@ -37,10 +39,13 @@ class MLRF:
         else :
             print "MLRF does not exist"
             print "making new MLRF"
+            #こいつでフォレストを返すと全てが狂う
             return self.create_forest()
 
     def create_forest(self):
         
+        mlrf = RandomForestClassifier()
+
         for i in range(38):
             self.lrforests += [ LRF(self.start_num, self.end_num-1, i) ]
        
@@ -70,15 +75,15 @@ class MLRF:
         print "training data Complete"
  
 
-        self.mlrf.fit(trainingdata , traininglabel )
+        mlrf.fit(trainingdata , traininglabel )
         
         # Save 
         print "save to", self.forest_path
         if not os.path.exists(self.forest_path):
             os.makedirs(self.forest_path)
-        joblib.dump(self.mlrf, self.forest_path+'/forest.bin')
+        joblib.dump(mlrf, self.forest_path+'/forest.bin')
     
-        return self.mlrf
+        return mlrf
 
     def predict(self, num):
 
@@ -170,7 +175,9 @@ class LRF:
     end_num = 0
     label =0
     forest_path = ""
-    lrf = RandomForestRegressor(n_estimators = 20 , warm_start=True)
+    
+    #warm_start こいつがすべてのバグの元凶
+    lrf = RandomForestRegressor(n_estimators = 5)
 
     m = "3000"
     cs = "4"
@@ -189,11 +196,13 @@ class LRF:
         else :
             print "LRF forest does not exist",self.label
             print "making new LRF forest",self.label
+            #こいつでフォレストを返すと全てが狂う
             return self.create_forest()
 
 
     def create_forest(self):
 
+        lrf = RandomForestRegressor(n_estimators = 5)
         
         #sp_vec_path_list = CSVReader.get_path_list2("./output/csvpath/spdata_path_m"+self.m+"cs"+self.cs+"w"+self.s_weight+".csv",0)
         sp_vec_path_list = CSVReader.get_path_list2("./output/csvpath/spdata_path_m"+self.m+"HSV.csv",0)
@@ -230,15 +239,15 @@ class LRF:
         print "training data Complete"
         
         #
-        self.lrf.fit(trainingdata , traininglabel )
+        lrf.fit(trainingdata , traininglabel )
         self.show_detail()
         # Save 
         print "save to", self.forest_path
         if not os.path.exists(self.forest_path):
             os.makedirs(self.forest_path)
-        joblib.dump(self.lrf, self.forest_path+'/forest.bin')
+        joblib.dump(lrf, self.forest_path+'/forest.bin')
     
-        return self.lrf
+        return lrf
 
     
     def get_prob(self, sp_data):
@@ -312,7 +321,6 @@ class LRF:
     def combine(self, forest):
         self.lrf.estimators_ += forest.estimators_
         self.lrf.n_estimators = len(self.lrf.estimators_)
-        
         return self.lrf
 
 
