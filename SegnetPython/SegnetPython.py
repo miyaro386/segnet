@@ -1,175 +1,94 @@
-# coding=utf_8
+feature_importances_ [  1.86757648e-02   2.78707520e-03   2.31973646e-03   2.50656429e-03
+   3.89900871e-02   1.58076917e-03   1.92864644e-03   0.00000000e+00
+   0.00000000e+00   0.00000000e+00   0.00000000e+00   0.00000000e+00
+   0.00000000e+00   0.00000000e+00   0.00000000e+00   0.00000000e+00
+   0.00000000e+00   0.00000000e+00   0.00000000e+00   0.00000000e+00
+   5.75951764e-03   3.41986826e-03   9.82194578e-04   6.48174597e-04
+   2.66730695e-03   8.41143702e-04   0.00000000e+00   0.00000000e+00
+   0.00000000e+00   2.10467184e-03   3.32912058e-03   0.00000000e+00
+   0.00000000e+00   0.00000000e+00   0.00000000e+00   0.00000000e+00
+   0.00000000e+00   0.00000000e+00   7.17399588e-04   1.11774023e-03
+   1.60267130e-04   4.44043448e-03   3.33976117e-03   5.66854527e-04
+   1.38559464e-03   2.14133045e-03   4.41363895e-03   6.71228186e-04
+   2.13923252e-03   5.96648586e-03   1.14242294e-03   5.46809544e-03
+   0.00000000e+00   0.00000000e+00   7.01500547e-04   0.00000000e+00
+   3.09149750e-02   4.23752510e-01   1.62495638e-03   0.00000000e+00
+   9.14347618e-02   6.42730021e-03   1.45634739e-01   3.97373204e-02
+   7.46992875e-02   3.46593843e-02   8.64345816e-03   7.89686683e-03
+   7.52792634e-03   4.13388609e-03]
 
-import cv2
-import numpy as np
-from numba import autojit
-import csv
-import ImgToVec
-import CSVReader
-import os
-from sklearn.ensemble import RandomForestClassifier
-from Forest import LRF
-from Forest import MLRF
-import Converter
-from SPRF import SPRF
+feature_importances_ [  2.16243635e-02   4.16324447e-03   2.63288952e-03   1.53531865e-02
+   2.33694105e-02   3.60885935e-04   3.41410630e-04   2.22229466e-03
+   2.51471525e-04   0.00000000e+00   0.00000000e+00   0.00000000e+00
+   0.00000000e+00   0.00000000e+00   0.00000000e+00   0.00000000e+00
+   0.00000000e+00   0.00000000e+00   0.00000000e+00   0.00000000e+00
+   2.64045101e-04   2.64010483e-03   2.25004104e-03   1.06814298e-03
+   6.50667711e-04   1.19826159e-03   0.00000000e+00   0.00000000e+00
+   7.25012189e-04   3.70389955e-03   0.00000000e+00   0.00000000e+00
+   0.00000000e+00   0.00000000e+00   0.00000000e+00   0.00000000e+00
+   0.00000000e+00   2.57758313e-04   0.00000000e+00   4.85236244e-04
+   0.00000000e+00   2.23868259e-03   1.84526554e-03   1.70709715e-03
+   2.00207085e-03   3.64296704e-03   2.75390769e-03   2.29857776e-03
+   2.04602950e-03   4.89858742e-03   2.06450899e-03   3.05527839e-03
+   0.00000000e+00   0.00000000e+00   1.19023185e-04   8.04708879e-04
+   4.11005566e-02   4.20475282e-01   0.00000000e+00   0.00000000e+00
+   7.36548143e-02   6.67642623e-03   1.43351329e-01   3.46871315e-02
+   9.10326106e-02   5.63517163e-02   3.87732923e-03   4.40862745e-03
+   7.57008210e-03   3.77506236e-03]
 
-
-
-#ImgToVec.sp_data_path("3000","4","0")
-
-m = "3000"
-cs = "4"
-weight ="0.0"
-
-#ImgToVec.convert_sp_to_rgbdrate(m,cs,weight)
-
-#for i in [ "3000","5000","10000"]:
-#    print i
-#    ImgToVec.convert_sp_to_rgbdrate(i,cs,weight)
-
-
-#ImgToVec.convert_sp_to_rgbdrate(m)
-#ImgToVec.sp_data_path(m)
-
-
-
-#for i in range(38):
-#    forest1 = LRF(0,500,i)
-#    forest2 = LRF(500,1000,i)
-#    forest3 = LRF(1000,1500,i)
-#    forest1.combine(forest2.lrf)
-#    forest1.combine(forest3.lrf)
-#    forest1.save_combined_forest(0,1500)
-
-#forest = MLRF(1000,1000)
-
-#forest.predict(100)
-forest1 = LRF(1000,1003,17)
-forest2 = LRF(1000,1003,6)
-#forest1.show_detail()
-#forest2.show_detail()
-#forest.data_statistics();
-#forest.create_forest()
-#forest.show_detail()
-#forest.predict(100)
-
-
-'''
-sprf = SPRF(0,2000,3000,4,0)
-result = []
-for i in range(10):
-    print i
-    result += [ sprf.predict(i) ]
-
-if not os.path.exists('./output'):
-    os.makedirs('./output')
-f = open('./output/outputMIOU.csv', 'w')
-writer = csv.writer(f, lineterminator='\n')
-writer.writerow(result)
-f.close()
-
-
-'''
-
-
-'''
-
-data = CSVReader.read_csv_as_float("0000133.jpg_m3000c4.csv")
-sp_map =  CSVReader.read_csv_as_int("0000133.jpg_m3000spmap.csv")
-test_data = []
-label = []
-for line in data:
-    test_data += [ line[0:256/int(4)*4] ]
-    label += [int(line[256/int(4)*4])]
-
-print label
-        
-size =  [len(sp_map), len(sp_map[0])]  
-dstimg = np.zeros((size[0],size[1],3), np.uint8)
-count = 0
-for y in range(size[0]):
-    for x in range(size[1]):
-        #print label[sp_map[y][x]]
-        dstimg.itemset((y,x,0),label[sp_map[y][x]])
-        dstimg.itemset((y,x,1),label[sp_map[y][x]])
-        dstimg.itemset((y,x,2),label[sp_map[y][x]])
-        count+=1
-
-
-
-cv2.imwrite('test.png',dstimg)
-        
-
-Converter.convert_label_to_color ("test.png")
-
-
-s_weight = str(int( float(weight)  * 10))
-model = RandomForestClassifier()
-ROOT_FILE_PATH = "C:\segnet\DataSet"
-
-
-cmd = u'"slic\SLICOSuperpixel.exe"'
-#os.system(cmd+" 300 img.jpg dep.png label.png");
-
-src_jpg_path = CSVReader.get_path_list2('SUNRGBDMeta_reduced.csv',4)
-src_dep_path = CSVReader.get_path_list2('SUNRGBDMeta_reduced.csv',3)
-src_label_path = CSVReader.get_path_list2('SUNRGBDMeta_reduced.csv',9)
-
-jpg_path = []
-dep_path = []
-label_path = []
-
-for i in range(5000):
-
-    jpg_path.append(src_jpg_path[2*i-1])
-    dep_path.append(src_dep_path[2*i-1])
-    label_path.append(src_label_path[2*i-1])
-
-
-    
-print "making training data"
-for i in range(5000):
-    if os.path.exists(jpg_path[i]+"_m"+m+"cs"+cs+"w"+s_weight+".csv"):
-        print "pass",jpg_path[i]
-    else:
-        print "inputting",i,jpg_path[i]
-        os.system(cmd+" "+ m + " "+cs+" "+jpg_path[i]+" "+dep_path[i]+" "+label_path[i]+" "+ weight);
-print "training data Complete"
-
-'''
-
-'''
-labelmap = "img.jpg_m300spmap.csv"
-data= CSVReader.read_csv_as_int(labelmap)
-
-size = [ len (data) , len(data[0] ) ]
-
-if not os.path.exists('./output'):
-    os.makedirs('./output')
-
-print "size0",size[0]
-print "size1",size[1]
-dstimg = np.zeros((size[0],size[1],3), np.uint8)
+feature_importances_ [  3.01796638e-03   2.72638005e-03   1.13877694e-03   1.26960948e-03
+   5.04323805e-03   2.64315645e-03   3.35649795e-03   6.60197065e-04
+   3.28675301e-03   0.00000000e+00   0.00000000e+00   0.00000000e+00
+   0.00000000e+00   0.00000000e+00   0.00000000e+00   0.00000000e+00
+   0.00000000e+00   0.00000000e+00   0.00000000e+00   0.00000000e+00
+   1.83827069e-01   3.92189603e-03   2.12713711e-03   2.17649550e-04
+   5.91950384e-04   0.00000000e+00   0.00000000e+00   0.00000000e+00
+   0.00000000e+00   0.00000000e+00   0.00000000e+00   0.00000000e+00
+   0.00000000e+00   0.00000000e+00   0.00000000e+00   0.00000000e+00
+   0.00000000e+00   1.05104877e-05   8.22568029e-04   4.61678929e-04
+   1.17175696e-03   5.05495483e-04   2.05708004e-03   3.57078203e-03
+   1.36620781e-02   3.73847904e-03   6.57825642e-03   1.53639097e-03
+   1.88331514e-03   1.09825512e-03   0.00000000e+00   0.00000000e+00
+   0.00000000e+00   0.00000000e+00   2.04324535e-03   1.25586619e-03
+   7.72840731e-04   1.88668211e-03   0.00000000e+00   0.00000000e+00
+   3.35796869e-03   2.04269276e-01   5.86824533e-03   5.29541936e-03
+   2.14540017e-02   4.91705656e-01   1.88115482e-03   5.35292289e-03
+   2.27620214e-03   1.65559366e-03]
    
-for y in range(size[0]):
-    for x in range(size[1]):
-                
-        dstimg.itemset((y,x,0),int(data[y][x])*2)
-        dstimg.itemset((y,x,1),int(data[y][x])*2)
-        dstimg.itemset((y,x,2),int(data[y][x])*2)
-        
-cv2.imwrite('output_data.png',dstimg)
-
-'''
-
-
-'''
-start_num = 0
-end_num = 3
-cut_size = 3
-
-forest =  Forest( start_num = 0, end_num = 1, cut_size = 5)
-forest.show_detail();
-forest.predict(10)
-'''
-
+   feature_importances_ [  1.44809484e-02   3.47866588e-03   1.00209017e-02   3.76555361e-03
+   3.20815094e-02   2.91894248e-03   2.27085346e-03   3.93669995e-04
+   9.09347820e-04   0.00000000e+00   0.00000000e+00   0.00000000e+00
+   0.00000000e+00   0.00000000e+00   0.00000000e+00   0.00000000e+00
+   0.00000000e+00   0.00000000e+00   0.00000000e+00   0.00000000e+00
+   7.01546261e-04   8.49663911e-03   4.17560383e-04   1.44848690e-03
+   1.25753079e-03   5.02917808e-04   0.00000000e+00   0.00000000e+00
+   8.89506947e-04   2.86276011e-04   9.83452037e-04   0.00000000e+00
+   0.00000000e+00   0.00000000e+00   0.00000000e+00   0.00000000e+00
+   0.00000000e+00   0.00000000e+00   0.00000000e+00   9.07960400e-04
+   7.64751151e-04   2.39578919e-03   6.72904127e-04   1.49317116e-03
+   1.53203613e-03   3.72195200e-03   3.98458038e-03   1.89127753e-03
+   2.23126385e-03   7.45560139e-03   3.41880161e-03   3.91040180e-03
+   0.00000000e+00   0.00000000e+00   8.82412992e-04   3.69065620e-04
+   4.62399831e-02   4.21050500e-01   2.36346112e-03   0.00000000e+00
+   7.54413114e-02   7.57672171e-03   1.48516916e-01   3.09647156e-02
+   9.19705466e-02   3.39379823e-02   8.16532305e-03   3.25508619e-03
+   5.19779867e-03   4.38337622e-03]
+   
+   feature_importances_ [  3.02223075e-03   7.02028175e-04   4.75944715e-03   1.27002908e-03
+   5.06118625e-03   0.00000000e+00   7.89098623e-03   5.00183921e-04
+   2.63365301e-03   0.00000000e+00   0.00000000e+00   0.00000000e+00
+   0.00000000e+00   0.00000000e+00   0.00000000e+00   0.00000000e+00
+   0.00000000e+00   0.00000000e+00   0.00000000e+00   0.00000000e+00
+   1.25669934e-01   1.63523547e-03   2.85764803e-03   7.99513025e-04
+   0.00000000e+00   1.07680438e-03   0.00000000e+00   0.00000000e+00
+   0.00000000e+00   0.00000000e+00   0.00000000e+00   0.00000000e+00
+   0.00000000e+00   0.00000000e+00   0.00000000e+00   0.00000000e+00
+   0.00000000e+00   9.50643511e-04   0.00000000e+00   1.66013805e-03
+   1.17200073e-03   5.52879815e-03   4.04451500e-03   3.00653446e-03
+   1.52730324e-02   3.08510005e-03   8.82696261e-03   1.40712174e-03
+   1.44469369e-03   0.00000000e+00   8.87503921e-04   0.00000000e+00
+   0.00000000e+00   0.00000000e+00   7.28764623e-04   8.92585958e-04
+   2.41127943e-04   6.76073266e-04   0.00000000e+00   0.00000000e+00
+   3.31335570e-03   2.61597463e-01   3.03350542e-02   8.00615294e-03
+   1.84819938e-02   4.63304991e-01   1.59780941e-03   3.24393302e-03
+   1.62938206e-03   7.85389043e-04]
