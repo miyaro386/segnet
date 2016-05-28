@@ -17,7 +17,7 @@ class MLRF:
     end_num = 0
     forest_path = ""
     #warm_start こいつがすべてのバグの元凶
-    mlrf = RandomForestClassifier()
+    forest = RandomForestClassifier()
     lrforests = []
     m = "3000"
     cs = "4"
@@ -28,7 +28,7 @@ class MLRF:
         self.start_num = start_num
         self.end_num = end_num +1
         self.forest_path = './supervised/MLRF_data'+str(start_num)+'-'+str(end_num)
-        self.fonest = self.laod_forest()
+        self.forest = self.laod_forest()
 
     #ロードはうまく行く
     def laod_forest(self):
@@ -44,7 +44,7 @@ class MLRF:
 
     def create_forest(self):
         
-        mlrf = RandomForestClassifier()
+        forest = RandomForestClassifier()
 
         for i in range(38):
             self.lrforests += [ LRF(self.start_num, self.end_num-1, i) ]
@@ -75,15 +75,15 @@ class MLRF:
         print "training data Complete"
  
 
-        self.fonest.fit(trainingdata , traininglabel )
+        forest.fit(trainingdata , traininglabel )
         
         # Save 
         print "save to", self.forest_path
         if not os.path.exists(self.forest_path):
             os.makedirs(self.forest_path)
-        joblib.dump(self.fonest, self.forest_path+'/forest.bin')
+        joblib.dump(forest, self.forest_path+'/forest.bin')
     
-        return self.fonest
+        return forest
 
     def predict(self, num):
 
@@ -99,13 +99,13 @@ class MLRF:
 
         
 
-        if os.path.exists(jpg_path+"_m"+self.m+"c"+self.cs+".csv"):
+        if os.path.exists(jpg_path+"_m"+self.m+"HSV.csv"):
             print "exist",jpg_path
         else:
             cmd = u'"slic\SLICOSuperpixel.exe"'
-            os.system(cmd+" "+ self.m + " "+self.cs+" "+jpg_path+" "+dep_path+" "+label_path+" "+ self.s_weight);
+            os.system(cmd+" "+ self.m + " "+jpg_path+" "+dep_path+" "+label_path+" "+ self.s_weight);
 
-        vec_data_path = jpg_path+"_m"+self.m+"c"+self.cs+".csv"
+        vec_data_path = jpg_path+"_m"+self.m+"HSV.csv"
         sp_map_path = jpg_path+"_m"+self.m+"spmap.csv"
 
         data = CSVReader.read_csv_as_float(vec_data_path)
@@ -124,7 +124,7 @@ class MLRF:
             test_data += [ prob ]
         print "test data Complete"
 
-        output = self.fonest.predict( test_data )
+        output = self.forest.predict( test_data )
         self.output_file(output, sp_map, num)
 
         return output
@@ -158,47 +158,52 @@ class MLRF:
 
         # forest内の各種データ確認用
     def show_detail(self):
-        print "n_estimators",self.fonest.n_estimators
-        print "criterion",self.fonest.criterion
-        print "max_depth",self.fonest.max_depth
-        print "class_", self.fonest.classes_
-        print "class_weight", self.fonest.class_weight
-        print "n_classes_", self.fonest.n_classes_
-        print "n_features",self.fonest.n_features_
-        print "n_outputs_",self.fonest.n_outputs_
-        print "feature_importances_",self.fonest.feature_importances_
+        print "n_estimators",self.forest.n_estimators
+        print "criterion",self.forest.criterion
+        print "max_depth",self.forest.max_depth
+        print "class_", self.forest.classes_
+        print "class_weight", self.forest.class_weight
+        print "n_classes_", self.forest.n_classes_
+        print "n_features",self.forest.n_features_
+        print "n_outputs_",self.forest.n_outputs_
+        print "feature_importances_",self.forest.feature_importances_
 
 
 class ILRF:
     start_num = 0
     end_num = 0
+    label = 0
     forest_path = ""
-    fonest = RandomForestClassifier()
+    #warm_start こいつがすべてのバグの元凶
+    forest = RandomForestClassifier()
     lrforests = []
     m = "3000"
     cs = "4"
     s_weight = "0"
     
 
-    def __init__(self,start_num, end_num):
+    def __init__(self,start_num, end_num, label):
         self.start_num = start_num
         self.end_num = end_num +1
+        self.label = label
         self.forest_path = './supervised/MLRF_data'+str(start_num)+'-'+str(end_num)
-        self.fonest = self.laod_forest()
+        self.forest = self.laod_forest()
 
+    #ロードはうまく行く
     def laod_forest(self):
         if os.path.exists(self.forest_path+'/forest.bin'):
             for i in range(38):
                 self.lrforests += [ LRF(self.start_num, self.end_num-1, i) ]
             return joblib.load(self.forest_path+'/forest.bin')
         else :
-            print "ILRF does not exist"
-            print "making new ILRF"
+            print "MLRF does not exist"
+            print "making new MLRF"
+            #こいつでフォレストを返すと全てが狂う
             return self.create_forest()
 
     def create_forest(self):
         
-        fonest = RandomForestClassifier()
+        forest = RandomForestRegressor()
 
         for i in range(38):
             self.lrforests += [ LRF(self.start_num, self.end_num-1, i) ]
@@ -214,34 +219,31 @@ class ILRF:
         
         print "making training data"
         for i in range(self.end_num - self.start_num):
-            print "inputting",i,sp_vec_path_list[i]
             data = CSVReader.read_csv_as_float(sp_vec_path_list[i])
             label_col = len(data[0])-1
             for line in data:
                 prob = []
                 for forest in self.lrforests:
-                    forest.show_detail()
                     prob.extend( forest.get_prob (line[0:label_col]) )
                 print "prob",prob
                 trainingdata += [ prob ]
                 if line[label_col] == self.label:
                     traininglabel +=[1]
-                    count+=1
                 else:
                     traininglabel +=[0]
 
         print "training data Complete"
  
 
-        self.fonest.fit(trainingdata , traininglabel )
+        self.forest.fit(trainingdata , traininglabel )
         
         # Save 
         print "save to", self.forest_path
         if not os.path.exists(self.forest_path):
             os.makedirs(self.forest_path)
-        joblib.dump(self.fonest, self.forest_path+'/forest.bin')
+        joblib.dump(self.forest, self.forest_path+'/forest.bin')
     
-        return self.fonest
+        return self.forest
 
     def predict(self, num):
 
@@ -257,13 +259,13 @@ class ILRF:
 
         
 
-        if os.path.exists(jpg_path+"_m"+self.m+"c"+self.cs+".csv"):
+        if os.path.exists(jpg_path+"_m"+self.m+"HSV.csv"):
             print "exist",jpg_path
         else:
             cmd = u'"slic\SLICOSuperpixel.exe"'
-            os.system(cmd+" "+ self.m + " "+self.cs+" "+jpg_path+" "+dep_path+" "+label_path+" "+ self.s_weight);
+            os.system(cmd+" "+ self.m + " "+jpg_path+" "+dep_path+" "+label_path+" "+ self.s_weight);
 
-        vec_data_path = jpg_path+"_m"+self.m+"c"+self.cs+".csv"
+        vec_data_path = jpg_path+"_m"+self.m+"HSV.csv"
         sp_map_path = jpg_path+"_m"+self.m+"spmap.csv"
 
         data = CSVReader.read_csv_as_float(vec_data_path)
@@ -282,12 +284,10 @@ class ILRF:
             test_data += [ prob ]
         print "test data Complete"
 
-        output = self.fonest.predict( test_data )
+        output = self.forest.predict( test_data )
         self.output_file(output, sp_map, num)
 
         return output
-
-
 
 
     def output_file(self, output, sp_map , num):
@@ -313,18 +313,27 @@ class ILRF:
         
         cv2.imwrite('output_MLRFdata'+str(num)+'.png',dstimg)
 
-
-        # forest内の各種データ確認用
+    
+    
+    def get_prob(self, sp_data):
+        prob = []
+        for forest in self.lrforests:
+            prob.extend( forest.get_prob ( sp_data ) )
+        output = self.forest.predict( [ prob ] )
+        return output.tolist()
+     
+            
+    # forest内の各種データ確認用
     def show_detail(self):
-        print "n_estimators",self.fonest.n_estimators
-        print "criterion",self.fonest.criterion
-        print "max_depth",self.fonest.max_depth
-        print "class_", self.fonest.classes_
-        print "class_weight", self.fonest.class_weight
-        print "n_classes_", self.fonest.n_classes_
-        print "n_features",self.fonest.n_features_
-        print "n_outputs_",self.fonest.n_outputs_
-        print "feature_importances_",self.fonest.feature_importances_
+        print "n_estimators",self.forest.n_estimators
+        print "criterion",self.forest.criterion
+        print "max_depth",self.forest.max_depth
+        print "class_", self.forest.classes_
+        print "class_weight", self.forest.class_weight
+        print "n_classes_", self.forest.n_classes_
+        print "n_features",self.forest.n_features_
+        print "n_outputs_",self.forest.n_outputs_
+        print "feature_importances_",self.forest.feature_importances_
 
 
 class LRF:
@@ -346,7 +355,7 @@ class LRF:
         self.end_num = end_num +1
         self.label = label
         self.forest_path = './supervised/label'+str(label)+'/HSVdata'+str(start_num)+'-'+str(end_num)
-        self.lrf = self.laod_forest()
+        self.forest = self.laod_forest()
 
     def laod_forest(self):
         if os.path.exists(self.forest_path+'/forest.bin'):
@@ -360,7 +369,7 @@ class LRF:
 
     def create_forest(self):
 
-        lrf = RandomForestRegressor(n_estimators = 5)
+        forest = RandomForestRegressor(n_estimators = 5)
         
         #sp_vec_path_list = CSVReader.get_path_list2("./output/csvpath/spdata_path_m"+self.m+"cs"+self.cs+"w"+self.s_weight+".csv",0)
         sp_vec_path_list = CSVReader.get_path_list2("./output/csvpath/spdata_path_m"+self.m+"HSV.csv",0)
@@ -383,33 +392,26 @@ class LRF:
             label_col = len(data[0])-1
             for line in data:
                 trainingdata += [ line[0:label_col] ]
-                #print line[label_col],self.label,count
-                #print line
                 if line[label_col] == self.label:
                     traininglabel +=[1]
-                    count+=1
                 else:
                     traininglabel +=[0]
-                    n_count+=1
-            print count, n_count
-            count = 0
-            n_count = 0
         print "training data Complete"
         
         #
-        lrf.fit(trainingdata , traininglabel )
+        forest.fit(trainingdata , traininglabel )
         self.show_detail()
         # Save 
         print "save to", self.forest_path
         if not os.path.exists(self.forest_path):
             os.makedirs(self.forest_path)
-        joblib.dump(lrf, self.forest_path+'/forest.bin')
+        joblib.dump(forest, self.forest_path+'/forest.bin')
     
-        return lrf
+        return forest
 
     
     def get_prob(self, sp_data):
-        output = self.lrf.predict( [ sp_data ] )
+        output = self.forest.predict( [ sp_data ] )
         return output.tolist()
 
     def predict(self, num):
@@ -429,13 +431,13 @@ class LRF:
         print "inputting",jpg_path
         print "inputting",label_path
 
-        if os.path.exists(jpg_path+"_m"+self.m+"c"+self.cs+".csv"):
+        if os.path.exists(jpg_path+"_m"+self.m+"HSV.csv"):
             print "exist",jpg_path
         else:
             cmd = u'"slic\SLICOSuperpixel.exe"'
-            os.system(cmd+" "+self.m+" "+self.cs+" "+jpg_path+" "+dep_path+" "+label_path+" "+ self.s_weight);
+            os.system(cmd+" "+self.m+" "+jpg_path+" "+dep_path+" "+label_path+" "+ self.s_weight);
 
-        vec_data_path = jpg_path+"_m"+self.m+"c"+self.cs+".csv"
+        vec_data_path = jpg_path+"_m"+self.m+"HSV.csv"
         sp_map_path = jpg_path+"_m"+self.m+"spmap.csv"
 
       
@@ -452,7 +454,7 @@ class LRF:
 
         print "test data Complete"
 
-        output = self.lrf.predict( test_data )
+        output = self.forest.predict( test_data )
         #self.output_file(output, num)
 
         return output
@@ -466,20 +468,20 @@ class LRF:
         f.close()
 
     def show_detail(self):
-        print "n_estimators",self.lrf.n_estimators
-        print "criterion",self.lrf.criterion
-        print "max_depth",self.lrf.max_depth
-        print "n_features",self.lrf.n_features_
-        print "n_outputs_",self.lrf.n_outputs_
-        print "feature_importances_",self.lrf.feature_importances_
+        print "n_estimators",self.forest.n_estimators
+        print "criterion",self.forest.criterion
+        print "max_depth",self.forest.max_depth
+        print "n_features",self.forest.n_features_
+        print "n_outputs_",self.forest.n_outputs_
+        print "feature_importances_",self.forest.feature_importances_
         # print "oob_score_",self.forest.oob_score_
         # print "oob_decision_function_",self.forest.oob_decision_function_
 
 
     def combine(self, forest):
-        self.lrf.estimators_ += forest.estimators_
-        self.lrf.n_estimators = len(self.lrf.estimators_)
-        return self.lrf
+        self.forest.estimators_ += forest.estimators_
+        self.forest.n_estimators = len(self.forest.estimators_)
+        return self.forest
 
 
     def save_combined_forest(self,start_num, end_num):
@@ -487,7 +489,7 @@ class LRF:
         print "save to", self.forest_path
         if not os.path.exists(self.forest_path):
             os.makedirs(self.forest_path)
-        joblib.dump(self.lrf, self.forest_path+'/forest.bin')
+        joblib.dump(self.forest, self.forest_path+'/forest.bin')
 
 
 
