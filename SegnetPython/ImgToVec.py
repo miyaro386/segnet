@@ -188,7 +188,7 @@ def sp_data_path(m):
         jpg_path.append(src_jpg_path[2*i+1])
         dep_path.append(src_dep_path[2*i+1])
         label_path.append(src_label_path[2*i+1])
-        line = [jpg_path[i]+"_m"+m+"HSV.csv",jpg_path[i]+"_m"+m+"spmap.csv"]
+        line = [jpg_path[i]+"_m"+m+"HSV.csv",jpg_path[i]+"_m"+m+"spmap.csv",jpg_path[i]+"_m"+m+"neighbors.csv"]
         writer.writerow(line)
 
 def chk_spdata():

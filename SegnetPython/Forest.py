@@ -50,6 +50,7 @@ class MLRF:
             self.lrforests += [ LRF(self.start_num, self.end_num-1, i) ]
        
         sp_vec_path_list = CSVReader.get_path_list2("./output/csvpath/spdata_path_m"+self.m+"HSV.csv",0)
+        sp_neighbors_list = CSVReader.get_path_list2("./output/csvpath/spdata_path_m"+self.m+"HSV.csv",2)
         if (len(sp_vec_path_list)<self.end_num):
             print "end_num is larger than data length"
             return -1
@@ -168,6 +169,191 @@ class MLRF:
         print "n_outputs_",self.forest.n_outputs_
         print "feature_importances_",self.forest.feature_importances_
 
+class CLRF:
+    start_num = 0
+    end_num = 0
+    forest_path = ""
+    #warm_start こいつがすべてのバグの元凶
+    forest = RandomForestClassifier()
+    lrforests = []
+    m = "3000"
+    cs = "4"
+    s_weight = "0"
+    
+
+    def __init__(self,start_num, end_num):
+        self.start_num = start_num
+        self.end_num = end_num +1
+        self.forest_path = './supervised/MLRF_data'+str(start_num)+'-'+str(end_num)
+        self.forest = self.laod_forest()
+
+    #ロードはうまく行く
+    def laod_forest(self):
+        if os.path.exists(self.forest_path+'/forest.bin'):
+            for i in range(38):
+                self.lrforests += [ LRF(self.start_num, self.end_num-1, i) ]
+            return joblib.load(self.forest_path+'/forest.bin')
+        else :
+            print "MLRF does not exist"
+            print "making new MLRF"
+            #こいつでフォレストを返すと全てが狂う
+            return self.create_forest()
+
+    def create_forest(self):
+        
+        forest = RandomForestClassifier()
+
+        for i in range(38):
+            self.lrforests += [ LRF(self.start_num, self.end_num-1, i) ]
+       
+        sp_vec_path_list = CSVReader.get_path_list2("./output/csvpath/spdata_path_m"+self.m+"HSV.csv",0)
+        sp_neighbors_list = CSVReader.get_path_list2("./output/csvpath/spdata_path_m"+self.m+"HSV.csv",2)
+        if (len(sp_vec_path_list)<self.end_num):
+            print "end_num is larger than data length"
+            return -1
+
+
+        trainingdata = []
+        traininglabel = []
+        
+        print "making training data"
+        for i in range(self.end_num - self.start_num):
+            
+            print "inputting",i,sp_vec_path_list[i]
+            data = CSVReader.read_csv_as_float(sp_vec_path_list[i])
+            neighbors = CSVReader.read_csv_as_int(sp_neighbors_list[i])
+            print neighbors
+            probs = load_probs(data)
+            label_col = len(data[0])-1
+            for line in data:
+                vector = []
+                for forest in self.lrforests:
+                    vector.extend( probs[neighbors[0]] )
+                    vector.extend( probs[neighbors[1]] )
+                    vector.extend( probs[neighbors[2]] )
+                    vector.extend( probs[neighbors[3]] )
+                print "prob",vector
+                trainingdata += [ vector ]
+                traininglabel+= [ line[label_col] ]
+            os.remove('./output/probs.csv')
+
+        print "training data Complete"
+ 
+
+        forest.fit(trainingdata , traininglabel )
+        
+        # Save 
+        print "save to", self.forest_path
+        if not os.path.exists(self.forest_path):
+            os.makedirs(self.forest_path)
+        joblib.dump(forest, self.forest_path+'/forest.bin')
+    
+        return forest
+
+    def load_probs(self, data):
+        if os.path.exists('./output/probs.csv'):
+            return CSVReader.read_csv_as_float('./output/probs.csv')
+        else :
+            output = []
+            label_col = len(data[0])-1
+            for line in data:
+                probs = []
+                for forest in self.lrforests:
+                    probs.extend( forest.get_prob (line[0:label_col]) )
+                output += [probs]
+            if not os.path.exists('./output'):
+                os.makedirs('./output')
+            f = open('./output/probs.csv', 'w')
+            writer = csv.writer(f, lineterminator='\n')
+            for line in output:
+                writer.writerow(output)
+            f.close()
+            return CSVReader.read_csv_as_float('./output/probs.csv')
+
+
+
+    def predict(self, num):
+
+
+        src_jpg_path = CSVReader.get_path_list2('SUNRGBDMeta_reduced.csv',4)
+        src_dep_path = CSVReader.get_path_list2('SUNRGBDMeta_reduced.csv',3)
+        src_label_path = CSVReader.get_path_list2('SUNRGBDMeta_reduced.csv',9)
+
+     
+        jpg_path = src_jpg_path[2*num]
+        dep_path = src_dep_path[2*num]
+        label_path = src_label_path[2*num]
+
+        
+
+        if os.path.exists(jpg_path+"_m"+self.m+"HSV.csv"):
+            print "exist",jpg_path
+        else:
+            cmd = u'"slic\SLICOSuperpixel.exe"'
+            os.system(cmd+" "+ self.m + " "+jpg_path+" "+dep_path+" "+label_path+" "+ self.s_weight);
+
+        vec_data_path = jpg_path+"_m"+self.m+"HSV.csv"
+        sp_map_path = jpg_path+"_m"+self.m+"spmap.csv"
+
+        data = CSVReader.read_csv_as_float(vec_data_path)
+        sp_map =  CSVReader.read_csv_as_int(sp_map_path)
+        test_data = []
+
+
+        label_col = len(data[0])-1
+        print "making test data"
+        print "inputting",vec_data_path
+        data = CSVReader.read_csv_as_float(vec_data_path)
+        for line in data:
+            prob = []
+            for forest in self.lrforests:
+                prob.extend( forest.get_prob (line[0:label_col]) )
+            test_data += [ prob ]
+        print "test data Complete"
+
+        output = self.forest.predict( test_data )
+        self.output_file(output, sp_map, num)
+
+        return output
+
+
+
+
+    def output_file(self, output, sp_map , num):
+        if not os.path.exists('./output'):
+            os.makedirs('./output')
+        f = open('./output/outputMLRFlabel_data'+str(num)+'.csv', 'w')
+        writer = csv.writer(f, lineterminator='\n')
+        writer.writerow(output)
+        f.close()
+
+     
+        
+        size =  [len(sp_map), len(sp_map[0])]  
+        dstimg = np.zeros((size[0],size[1],3), np.uint8)
+        count = 0
+        for y in range(size[0]):
+            for x in range(size[1]):
+                
+                dstimg.itemset((y,x,0),output[sp_map[y][x]])
+                dstimg.itemset((y,x,1),output[sp_map[y][x]])
+                dstimg.itemset((y,x,2),output[sp_map[y][x]])
+                count+=1
+        
+        cv2.imwrite('output_MLRFdata'+str(num)+'.png',dstimg)
+
+
+        # forest内の各種データ確認用
+    def show_detail(self):
+        print "n_estimators",self.forest.n_estimators
+        print "criterion",self.forest.criterion
+        print "max_depth",self.forest.max_depth
+        print "class_", self.forest.classes_
+        print "class_weight", self.forest.class_weight
+        print "n_classes_", self.forest.n_classes_
+        print "n_features",self.forest.n_features_
+        print "n_outputs_",self.forest.n_outputs_
+        print "feature_importances_",self.forest.feature_importances_
 
 class ILRF:
     start_num = 0
@@ -529,18 +715,7 @@ class LRF:
 
 
 
-# 使い方
-#1, 'from Forest import Forest' を上に追加  
-#2,  forest =  Forest( start_num = 0, end_num = 3, cut_size = 3) を書く。 インスタンス化というやつ。 forestが本体
-#3, 松下先生のexcelファイルのパスのリストからstart_num～end_numの間のデータセットのフォレストを作る。cut_sizeは正方形の辺の長さ
-#4, 過去に同じ引数をしているなら、保存してあるforestを参照する
-#5, テストデータを渡すときは 'forest.forest.predict( testdata )' という形で。
-#
-# forest.Combine(forest2) で一応はforestがforest2を吸収合併する。
-#
-#使う前に！
-# CSVReader.py のファイルパスを各自の環境に合わせて変更してから使って
-#
+
 
 class Forest:
 
