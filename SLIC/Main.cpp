@@ -59,6 +59,9 @@ enum Index {
 	PLANE_NORMAL_X,
 	PLANE_NORMAL_Y,
 	PLANE_NORMAL_Z,
+	PLANE_NORMAL_H,
+	PLANE_NORMAL_S,
+	PLANE_NORMAL_V,
 	PIXEL_SUM,
 	LABEL,						//データ出力はここまで
 	CLOSE1,
@@ -126,7 +129,7 @@ int main(int argc, char* argv[]) {
 		
 		gradStren[i] =  sqrt(gradx * gradx + grady * grady);
 		//printf("(%d, %d), ", gradx, grady);
-		//printf("%f, ", gradStren[i]);
+		//if (gradStren[i] == 0 )printf("%f, \n", gradStren[i]);
 		gradDirec[i] = (int)9 * abs(atan2(grady, gradx)) / (M_PI); // note: this is converted int 0~8 
 		if (gradDirec[i] >=  9) gradDirec[i] = 8;
 
@@ -138,20 +141,20 @@ int main(int argc, char* argv[]) {
 			x = 0;
 			y++;
 		}
-		img[i] = (d << 24) + (b << 16) + (g << 8) + r;
+		img[i] = (r << 16) + (g << 8) + b;
 	}
 
 	//printf("%d\n", errpix);
 	SLIC slic;
-	//slic.PerformSLICO_ForGivenK(img, width, height, labels, numlabels, m_spcount, m_compactness);//for a given number K of superpixels
+	slic.PerformSLICO_ForGivenK(img, width, height, labels, numlabels, m_spcount, m_compactness);//for a given number K of superpixels
 
-	SLICOD slicod;
-	slicod.PerformSLICOD_ForGivenK(img, width, height, labels, numlabels, m_spcount, m_compactness, weight);//for a given number K of superpixels
+	//SLICOD slicod;
+	//slicod.PerformSLICOD_ForGivenK(img, width, height, labels, numlabels, m_spcount, m_compactness, weight);//for a given number K of superpixels
 
 
 	vector<vector<float>> data(numlabels, vector<float>(LAST +1 , 0));
 	vector<vector<float>> hog(numlabels, vector<float>(9, 0));
-	vector<vector<unsigned char>> label(numlabels, vector<unsigned char>(38, 0));
+	vector<vector<int>> label(numlabels, vector<int>(38, 0));
 
 	int dataSize = Y_AVE + 1;
 
@@ -159,6 +162,8 @@ int main(int argc, char* argv[]) {
 	string s_m = argv[1];
 	ofstream ofs(jpgPath + "_m" + s_m + "HSV.csv");
 	ofstream ofs_spmap(jpgPath + "_m" + s_m + "spmap.csv");
+	ofstream ofs_neighbors(jpgPath + "_m" + s_m + "neighbors.csv");
+
 	x = 0;
 	y = 0;
 	for (int i = 0; i < sz; i++)
@@ -178,7 +183,7 @@ int main(int argc, char* argv[]) {
 		
 
 		//printf("(%d , %d) %d \n", x, y, labels[i]);
-		h = (unsigned char)h / 20;
+		h = (unsigned char)h / 9;
 		if (h >= 20) h = 19;
 		s = (unsigned char)s / 16;
 		v = (unsigned char)v / 16;
@@ -194,12 +199,9 @@ int main(int argc, char* argv[]) {
 		data[labels[i]][LABEL] += 1;
 		data[labels[i]][PIXEL_SUM] += 1;
 
-		// 怪しいとこその一
-		label[labels[i]][l] += 1;
+		label[labels[i]][l] ++;
 
-		//ofsLabel << "("+to_string(labels[i])+",L" + to_string(l) + ")";
 		ofs_spmap << to_string(labels[i]);
-		//printf("%d, %d, ", labels[i], label[labels[i]][l]);
 		x++;
 		if (x >= width) {
 			ofs_spmap << endl;
@@ -212,7 +214,6 @@ int main(int argc, char* argv[]) {
 		}
 
 	}// スーパーピクセル毎のデータ取得完了
-
 
 	//正解ラベルを取得
 	int max = 0;
@@ -230,20 +231,13 @@ int main(int argc, char* argv[]) {
 	}
 
 
-	//for (int i = 0; i < numlabels; i++) {
-	//	//if (label[i][0] < 50) continue;
-	//	printf("%d [ ", i);
-	//	for (int j = 0; j < 40; j++) {
-	//		printf("%d, ", label[i][j]);
-	//	}
-	//	printf(" ] %f \n", data[i][rgbdSize]);
-	//}
-	//getchar();
 
-	int div_num = int(sqrt(m_spcount/4)/10) * 10;
+
+	//
+	int div_num = int(sqrt(numlabels / 4) /5) * 5;
+	if( div_num == 0 ) div_num = 2;
 	int xMax = int(width / div_num);
 	int yMax = int(height / div_num);
-	
 	vector< vector< vector<int> > > XYsec( yMax + 1, vector< vector<int> >(xMax + 1, vector<int>(0)));
 
 	
@@ -276,8 +270,6 @@ int main(int argc, char* argv[]) {
 	}
 
 
-
-
 	//もっとも近い4つのスーパーピクセルを取得
 	int dist = 0;
 	x = 0; y = 0;
@@ -289,39 +281,35 @@ int main(int argc, char* argv[]) {
 		vector<float> min(4, 10000);
 		vector<float> tempLabel(4, 0);
 		X = (int)data[i][X_AVE] / div_num; Y = (int)data[i][Y_AVE] / div_num;
-		for (int j = 0; j < XYsec[Y][X].size(); j++)closeLabel.push_back(XYsec[Y][X][j]);
-		if (X > 0)
-			for (int j = 0; j < XYsec[Y][X - 1].size(); j++)closeLabel.push_back(XYsec[Y][X - 1][j]);
-		if (X < xMax)
-			for (int j = 0; j < XYsec[Y][X + 1].size(); j++)closeLabel.push_back(XYsec[Y][X + 1][j]);
-		if (Y > 0)
-			for (int j = 0; j < XYsec[Y - 1][X].size(); j++)closeLabel.push_back(XYsec[Y - 1][X][j]);
-		if (Y < yMax)
-			for (int j = 0; j < XYsec[Y + 1][X].size(); j++)closeLabel.push_back(XYsec[Y + 1][X][j]);
-		//左上
-		if (X > 0 && Y > 0)
-			for (int j = 0; j < XYsec[Y - 1][X - 1].size(); j++)closeLabel.push_back(XYsec[Y - 1][X - 1][j]);
-		//右上
-		if (X < xMax && Y > 0)
-			for (int j = 0; j < XYsec[Y - 1][X + 1].size(); j++)closeLabel.push_back(XYsec[Y - 1][X + 1][j]);
-		if (X > 0 && Y < yMax)
-			for (int j = 0; j < XYsec[Y + 1][X - 1].size(); j++)closeLabel.push_back(XYsec[Y + 1][X - 1][j]);
-		if (X < xMax && Y < yMax)
-			for (int j = 0; j < XYsec[Y + 1][X + 1].size(); j++)closeLabel.push_back(XYsec[Y + 1][X + 1][j]);
 
-		data[i][SP_DENSE] = closeLabel.size();
+		for (int offset = 1; closeLabel.size() <= 4; offset++) { //自身も含めるので closeLabel.size() <= 4
+			int leftX = X - offset;
+			int rightX = X + offset;
+			int upY = Y - offset;
+			int downY = Y + offset;
+			if (offset == 1)
+				for (int j = 0; j < XYsec[Y][X].size(); j++)closeLabel.push_back(XYsec[Y][X][j]);
+			if (leftX >= 0)
+				for (int j = 0; j < XYsec[Y][leftX].size(); j++)closeLabel.push_back(XYsec[Y][leftX][j]);
+			if (rightX <= xMax)
+				for (int j = 0; j < XYsec[Y][rightX].size(); j++)closeLabel.push_back(XYsec[Y][rightX][j]);
+			if (upY >= 0)
+				for (int j = 0; j < XYsec[upY][X].size(); j++)closeLabel.push_back(XYsec[upY][X][j]);
+			if (downY <= yMax)
+				for (int j = 0; j < XYsec[downY][X].size(); j++)closeLabel.push_back(XYsec[downY][X][j]);
+			//左上
+			if (leftX >= 0 && upY >= 0)
+				for (int j = 0; j < XYsec[upY][leftX].size(); j++)closeLabel.push_back(XYsec[upY][leftX][j]);
+			//右上
+			if (rightX <= xMax && upY >= 0)
+				for (int j = 0; j < XYsec[upY][rightX].size(); j++)closeLabel.push_back(XYsec[upY][rightX][j]);
+			if (leftX >= 0 && downY <= yMax)
+				for (int j = 0; j < XYsec[downY][leftX].size(); j++)closeLabel.push_back(XYsec[downY][leftX][j]);
+			if (rightX <= xMax && downY <= yMax)
+				for (int j = 0; j < XYsec[downY][rightX].size(); j++)closeLabel.push_back(XYsec[downY][rightX][j]);
 
-		//例外処理
-		while (closeLabel.size() < 4) {
-			for (int j = 0; j < XYsec[Y][X].size(); j++)closeLabel.push_back(XYsec[Y][X][j]);
-			if (X > 0)
-				for (int j = 0; j < XYsec[Y][X - 1].size(); j++)closeLabel.push_back(XYsec[Y][X - 1][j]);
-			if (X < int(width / div_num))
-				for (int j = 0; j < XYsec[Y][X + 1].size(); j++)closeLabel.push_back(XYsec[Y][X + 1][j]);
-			if (Y > 0)
-				for (int j = 0; j < XYsec[Y - 1][X].size(); j++)closeLabel.push_back(XYsec[Y - 1][X][j]);
-			if (Y < int(height / div_num))
-				for (int j = 0; j < XYsec[Y + 1][X].size(); j++)closeLabel.push_back(XYsec[Y + 1][X][j]);
+			if (offset == 1)data[i][SP_DENSE] = closeLabel.size();
+
 		}
 
 		//printf("%d contains ", i);
@@ -357,11 +345,59 @@ int main(int argc, char* argv[]) {
 		data[i][CLOSE4] = tempLabel[3];
 		//printf (" %d is near (%f, %f, %f, %f) \n", i,data[i][CLOSE1], data[i][CLOSE2], data[i][CLOSE3], data[i][CLOSE4]);
 
-		//getchar();
 	}
-
-
 	
+	for (int i = 0; i < numlabels; i++) {
+		//HSV_PLANET_NORM算出
+		vector<vector<float>> vec(4, vector<float>(3, 0));
+		vector<vector<float>> faceVec(4, vector<float>(3, 0));
+		vec[0][0] = data[data[i][CLOSE1]][H_AVE] - data[i][H_AVE];
+		vec[0][1] = data[data[i][CLOSE1]][S_AVE] - data[i][S_AVE];
+		vec[0][2] = data[data[i][CLOSE1]][V_AVE] - data[i][V_AVE];
+		vec[1][0] = data[data[i][CLOSE2]][H_AVE] - data[i][H_AVE];
+		vec[1][1] = data[data[i][CLOSE2]][S_AVE] - data[i][S_AVE];
+		vec[1][2] = data[data[i][CLOSE2]][V_AVE] - data[i][V_AVE];
+		vec[2][0] = data[data[i][CLOSE3]][H_AVE] - data[i][H_AVE];
+		vec[2][1] = data[data[i][CLOSE3]][S_AVE] - data[i][S_AVE];
+		vec[2][2] = data[data[i][CLOSE3]][V_AVE] - data[i][V_AVE];
+		vec[3][0] = data[data[i][CLOSE4]][H_AVE] - data[i][H_AVE];
+		vec[3][1] = data[data[i][CLOSE4]][S_AVE] - data[i][S_AVE];
+		vec[3][2] = data[data[i][CLOSE4]][V_AVE] - data[i][V_AVE];
+
+		faceVec[0][0] = vec[0][1] * vec[1][2] - vec[0][2] * vec[1][1];
+		faceVec[0][1] = vec[0][2] * vec[1][0] - vec[0][0] * vec[1][2];
+		faceVec[0][2] = vec[0][0] * vec[1][1] - vec[0][1] * vec[1][0];
+
+		faceVec[1][0] = vec[1][1] * vec[2][2] - vec[1][2] * vec[2][1];
+		faceVec[1][1] = vec[1][2] * vec[2][0] - vec[1][0] * vec[2][2];
+		faceVec[1][2] = vec[1][0] * vec[2][1] - vec[1][1] * vec[2][0];
+
+		faceVec[2][0] = vec[2][1] * vec[3][2] - vec[2][2] * vec[3][1];
+		faceVec[2][1] = vec[2][2] * vec[3][0] - vec[2][0] * vec[3][2];
+		faceVec[2][2] = vec[2][0] * vec[3][1] - vec[2][1] * vec[3][0];
+
+		faceVec[3][0] = vec[3][1] * vec[0][2] - vec[3][2] * vec[0][1];
+		faceVec[3][1] = vec[3][2] * vec[0][0] - vec[3][0] * vec[0][2];
+		faceVec[3][2] = vec[3][0] * vec[0][1] - vec[3][1] * vec[0][0];
+
+		for (int m = 0; m < 4; m++) {
+			data[i][PLANE_NORMAL_H] += faceVec[m][0];
+			data[i][PLANE_NORMAL_S] += faceVec[m][1];
+			data[i][PLANE_NORMAL_V] += faceVec[m][2];
+
+		}
+		double norm = sqrt(data[i][PLANE_NORMAL_H] * data[i][PLANE_NORMAL_H] + data[i][PLANE_NORMAL_S] * data[i][PLANE_NORMAL_S] + data[i][PLANE_NORMAL_V] * data[i][PLANE_NORMAL_V]);
+		if (norm != 0) {
+			data[i][PLANE_NORMAL_H] = data[i][PLANE_NORMAL_H] / norm;
+			data[i][PLANE_NORMAL_S] = data[i][PLANE_NORMAL_S] / norm;
+			data[i][PLANE_NORMAL_V] = data[i][PLANE_NORMAL_V] / norm;
+		}
+		else {
+			data[i][PLANE_NORMAL_H] = 0;
+			data[i][PLANE_NORMAL_S] = 0;
+			data[i][PLANE_NORMAL_V] = 0;
+		}
+	}
 	for (int i = 0; i < numlabels; i++) {
 		//PLANET_NORM算出
 		vector<vector<float>> vec(4, vector<float>(3, 0));
@@ -413,6 +449,7 @@ int main(int argc, char* argv[]) {
 			data[i][PLANE_NORMAL_Z] = 0;
 		}
 
+
 		for (int j = CLOSE1; j < CLOSE4; j++) {
 			data[i][H_DIFF] = abs(data[data[i][j]][H_AVE] - data[i][H_AVE]);
 			data[i][S_DIFF] = abs(data[data[i][j]][S_AVE] - data[i][S_AVE]);
@@ -434,7 +471,6 @@ int main(int argc, char* argv[]) {
 
 
 
-
 	//データを出力する
 	for (int i = 0; i < numlabels; i++) {
 		for (int j = 0; j < LABEL; j++) {
@@ -442,9 +478,14 @@ int main(int argc, char* argv[]) {
 		}
 		ofs << to_string(data[i][LABEL]) << endl;
 	}
+	for (int i = 0; i < numlabels; i++) {
+		for (int j = CLOSE1; j <= CLOSE3; j++) {
+			ofs_neighbors << to_string(data[i][j]) + ",";
+		}
+		ofs_neighbors << to_string(data[i][CLOSE4]) << endl;
+	}
 
-
-	//convert_label_to_color(argv[5], data, labels);
+	//convert_label_to_color(argv[4], data, labels);
 	//getchar();
 
 	if (labels) delete[] labels;
@@ -503,10 +544,9 @@ void convert_label_to_color(string FILE_PATH, vector<vector<float>> &data, int *
 	int height = src.rows;
 	int width = src.cols;
 	int size = height * width;
-	int rgbd = data[0].size() - 1;
 	int b = 0; int g = 0; int r = 0; int l = 0;
 	for (int i = 0; i < size; i++) {
-		l = data[labels[i]][rgbd];
+		l = data[labels[i]][LABEL];
 		//l = labels[i];
 		to_color(l, &b, &g, &r);
 		dst.data[3 * i] = b;
