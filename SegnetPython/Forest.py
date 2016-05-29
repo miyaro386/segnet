@@ -232,7 +232,7 @@ class CLRF:
                     vector.extend( probs[neighbors[1]] )
                     vector.extend( probs[neighbors[2]] )
                     vector.extend( probs[neighbors[3]] )
-                print "prob",vector
+                print "training vector",vector
                 trainingdata += [ vector ]
                 traininglabel+= [ line[label_col] ]
             os.remove('./output/probs.csv')
@@ -261,6 +261,7 @@ class CLRF:
                 for forest in self.lrforests:
                     probs.extend( forest.get_prob (line[0:label_col]) )
                 output += [probs]
+                print "probs",probs
             if not os.path.exists('./output'):
                 os.makedirs('./output')
             f = open('./output/probs.csv', 'w')
