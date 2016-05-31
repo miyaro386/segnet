@@ -11,6 +11,7 @@ import numpy as np
 import csv
 import ImgToVec
 import CSVReader
+import Assessment
 
 class MLRF:
     start_num = 0
@@ -20,7 +21,6 @@ class MLRF:
     forest = RandomForestClassifier()
     lrforests = []
     m = "3000"
-    cs = "4"
     s_weight = "0"
     
 
@@ -49,8 +49,8 @@ class MLRF:
         for i in range(38):
             self.lrforests += [ LRF(self.start_num, self.end_num-1, i) ]
        
-        sp_vec_path_list = CSVReader.get_path_list2("./output/csvpath/spdata_path_m"+self.m+"HSV.csv",0)
-        sp_neighbors_list = CSVReader.get_path_list2("./output/csvpath/spdata_path_m"+self.m+"HSV.csv",2)
+        sp_vec_path_list = CSVReader.get_path_list2("./output/csvpath/spdata_path_m"+self.m+".csv",0)
+        sp_neighbors_list = CSVReader.get_path_list2("./output/csvpath/spdata_path_m"+self.m+".csv",2)
         if (len(sp_vec_path_list)<self.end_num):
             print "end_num is larger than data length"
             return -1
@@ -66,10 +66,9 @@ class MLRF:
             label_col = len(data[0])-1
             for line in data:
                 prob = []
-                for forest in self.lrforests:
-                    forest.show_detail()
-                    prob.extend( forest.get_prob (line[0:label_col]) )
-                print "prob",prob
+                for lrf in self.lrforests:
+                    prob.extend( lrf.get_prob (line[0:label_col]) )
+                #print "prob",prob
                 trainingdata += [ prob ]
                 traininglabel+= [ line[label_col] ]
 
@@ -100,13 +99,13 @@ class MLRF:
 
         
 
-        if os.path.exists(jpg_path+"_m"+self.m+"HSV.csv"):
+        if os.path.exists(jpg_path+"_m"+self.m+"spdata.csv"):
             print "exist",jpg_path
         else:
             cmd = u'"slic\SLICOSuperpixel.exe"'
             os.system(cmd+" "+ self.m + " "+jpg_path+" "+dep_path+" "+label_path+" "+ self.s_weight);
 
-        vec_data_path = jpg_path+"_m"+self.m+"HSV.csv"
+        vec_data_path = jpg_path+"_m"+self.m+"spdata.csv"
         sp_map_path = jpg_path+"_m"+self.m+"spmap.csv"
 
         data = CSVReader.read_csv_as_float(vec_data_path)
@@ -128,7 +127,9 @@ class MLRF:
         output = self.forest.predict( test_data )
         self.output_file(output, sp_map, num)
 
-        return output
+        img_a = cv2.imread(label_path,0)
+        img_b = cv2.imread('output_MLRFdata'+str(num)+'.png',0)
+        return Assessment.AssessmentByMIOU(img_a,img_b)
 
 
 
@@ -176,15 +177,14 @@ class CLRF:
     #warm_start こいつがすべてのバグの元凶
     forest = RandomForestClassifier()
     lrforests = []
-    m = "3000"
-    cs = "4"
+    m = "1000"
     s_weight = "0"
     
 
     def __init__(self,start_num, end_num):
         self.start_num = start_num
         self.end_num = end_num +1
-        self.forest_path = './supervised/MLRF_data'+str(start_num)+'-'+str(end_num)
+        self.forest_path = './supervised/CLRF_data'+str(start_num)+'-'+str(end_num)
         self.forest = self.laod_forest()
 
     #ロードはうまく行く
@@ -194,8 +194,8 @@ class CLRF:
                 self.lrforests += [ LRF(self.start_num, self.end_num-1, i) ]
             return joblib.load(self.forest_path+'/forest.bin')
         else :
-            print "MLRF does not exist"
-            print "making new MLRF"
+            print "CLRF does not exist"
+            print "making new CLRF"
             #こいつでフォレストを返すと全てが狂う
             return self.create_forest()
 
@@ -206,8 +206,8 @@ class CLRF:
         for i in range(38):
             self.lrforests += [ LRF(self.start_num, self.end_num-1, i) ]
        
-        sp_vec_path_list = CSVReader.get_path_list2("./output/csvpath/spdata_path_m"+self.m+"HSV.csv",0)
-        sp_neighbors_list = CSVReader.get_path_list2("./output/csvpath/spdata_path_m"+self.m+"HSV.csv",2)
+        sp_vec_path_list = CSVReader.get_path_list2("./output/csvpath/spdata_path_m"+self.m+".csv",0)
+        sp_neighbors_list = CSVReader.get_path_list2("./output/csvpath/spdata_path_m"+self.m+".csv",2)
         if (len(sp_vec_path_list)<self.end_num):
             print "end_num is larger than data length"
             return -1
@@ -222,19 +222,18 @@ class CLRF:
             print "inputting",i,sp_vec_path_list[i]
             data = CSVReader.read_csv_as_float(sp_vec_path_list[i])
             neighbors = CSVReader.read_csv_as_int(sp_neighbors_list[i])
-            print neighbors
-            probs = load_probs(data)
+            probs = self.load_probs(data)
             label_col = len(data[0])-1
-            for line in data:
+            for j in range(len(data)):
                 vector = []
-                for forest in self.lrforests:
-                    vector.extend( probs[neighbors[0]] )
-                    vector.extend( probs[neighbors[1]] )
-                    vector.extend( probs[neighbors[2]] )
-                    vector.extend( probs[neighbors[3]] )
-                print "training vector",vector
+                vector.extend( probs[j] )
+                vector.extend( probs[neighbors[j][0]] )
+                vector.extend( probs[neighbors[j][1]] )
+                vector.extend( probs[neighbors[j][2]] )
+                vector.extend( probs[neighbors[j][3]] )
+                #print "training vector",len(vector)
                 trainingdata += [ vector ]
-                traininglabel+= [ line[label_col] ]
+                traininglabel+= [ data[j][label_col] ]
             os.remove('./output/probs.csv')
 
         print "training data Complete"
@@ -261,15 +260,44 @@ class CLRF:
                 for forest in self.lrforests:
                     probs.extend( forest.get_prob (line[0:label_col]) )
                 output += [probs]
-                print "probs",probs
+
             if not os.path.exists('./output'):
                 os.makedirs('./output')
             f = open('./output/probs.csv', 'w')
             writer = csv.writer(f, lineterminator='\n')
             for line in output:
-                writer.writerow(output)
+                writer.writerow(line)
             f.close()
             return CSVReader.read_csv_as_float('./output/probs.csv')
+
+    def load_inter_probs(self, data, neighbors):
+        if os.path.exists('./output/probs.csv'):
+            return CSVReader.read_csv_as_float('./output/probs.csv')
+        else :
+            output = []
+            probs = self.load_probs(data)
+            label_col = len(data[0])-1
+            for j in range(len(data)):
+                new_prob = []
+                vector = []
+                vector.extend( probs[j] )
+                vector.extend( probs[neighbors[j][0]] )
+                vector.extend( probs[neighbors[j][1]] )
+                vector.extend( probs[neighbors[j][2]] )
+                vector.extend( probs[neighbors[j][3]] )
+                for forest in self.lrforests:
+                    new_prob.extend( forest.get_prob (vector) )
+                output += [new_prob]
+
+            os.remove('./output/probs.csv')
+            if not os.path.exists('./output'):
+                os.makedirs('./output')
+            f = open('./output/inter_probs.csv', 'w')
+            writer = csv.writer(f, lineterminator='\n')
+            for line in output:
+                writer.writerow(line)
+            f.close()
+            return CSVReader.read_csv_as_float('./output/layer_probs.csv')
 
 
 
@@ -286,36 +314,42 @@ class CLRF:
         label_path = src_label_path[2*num]
 
         
-
-        if os.path.exists(jpg_path+"_m"+self.m+"HSV.csv"):
+        if os.path.exists(jpg_path+"_m"+self.m+"spdata.csv"):
             print "exist",jpg_path
         else:
             cmd = u'"slic\SLICOSuperpixel.exe"'
             os.system(cmd+" "+ self.m + " "+jpg_path+" "+dep_path+" "+label_path+" "+ self.s_weight);
 
-        vec_data_path = jpg_path+"_m"+self.m+"HSV.csv"
+        vec_data_path = jpg_path+"_m"+self.m+"spdata.csv"
         sp_map_path = jpg_path+"_m"+self.m+"spmap.csv"
+        sp_neighbors_path = jpg_path+"_m"+self.m+"neighbors.csv"
 
         data = CSVReader.read_csv_as_float(vec_data_path)
         sp_map =  CSVReader.read_csv_as_int(sp_map_path)
+        neighbors = CSVReader.read_csv_as_int(sp_neighbors_path)
+
         test_data = []
 
-
+        probs = self.load_probs(data)
         label_col = len(data[0])-1
-        print "making test data"
-        print "inputting",vec_data_path
-        data = CSVReader.read_csv_as_float(vec_data_path)
-        for line in data:
-            prob = []
-            for forest in self.lrforests:
-                prob.extend( forest.get_prob (line[0:label_col]) )
-            test_data += [ prob ]
+        for j in range(len(data)):
+            vector = []
+            vector.extend( probs[j] )
+            vector.extend( probs[neighbors[j][0]] )
+            vector.extend( probs[neighbors[j][1]] )
+            vector.extend( probs[neighbors[j][2]] )
+            vector.extend( probs[neighbors[j][3]] )
+            test_data += [ vector ]
+        os.remove('./output/probs.csv')
+
         print "test data Complete"
 
         output = self.forest.predict( test_data )
         self.output_file(output, sp_map, num)
 
-        return output
+        img_a = cv2.imread(label_path,0)
+        img_b = cv2.imread('output_CLRFdata'+str(num)+'.png',0)
+        return [label_path ,Assessment.AssessmentByMIOU(img_a,img_b)]
 
 
 
@@ -323,7 +357,7 @@ class CLRF:
     def output_file(self, output, sp_map , num):
         if not os.path.exists('./output'):
             os.makedirs('./output')
-        f = open('./output/outputMLRFlabel_data'+str(num)+'.csv', 'w')
+        f = open('./output/outputCLRFlabel_data'+str(num)+'.csv', 'w')
         writer = csv.writer(f, lineterminator='\n')
         writer.writerow(output)
         f.close()
@@ -341,7 +375,7 @@ class CLRF:
                 dstimg.itemset((y,x,2),output[sp_map[y][x]])
                 count+=1
         
-        cv2.imwrite('output_MLRFdata'+str(num)+'.png',dstimg)
+        cv2.imwrite('output_CLRFdata'+str(num)+'.png',dstimg)
 
 
         # forest内の各種データ確認用
@@ -360,20 +394,21 @@ class ILRF:
     start_num = 0
     end_num = 0
     label = 0
+    layer = 0
     forest_path = ""
     #warm_start こいつがすべてのバグの元凶
     forest = RandomForestClassifier()
     lrforests = []
-    m = "3000"
-    cs = "4"
+    m = "1000"
     s_weight = "0"
     
 
-    def __init__(self,start_num, end_num, label):
+    def __init__(self,start_num, end_num, label, layer):
         self.start_num = start_num
         self.end_num = end_num +1
         self.label = label
-        self.forest_path = './supervised/MLRF_data'+str(start_num)+'-'+str(end_num)
+        self.layer = layer
+        self.forest_path = './supervised/layer'+str(layer)+'/label'+str(label)+'/data'+str(start_num)+'-'+str(end_num)
         self.forest = self.laod_forest()
 
     #ロードはうまく行く
@@ -383,8 +418,8 @@ class ILRF:
                 self.lrforests += [ LRF(self.start_num, self.end_num-1, i) ]
             return joblib.load(self.forest_path+'/forest.bin')
         else :
-            print "MLRF does not exist"
-            print "making new MLRF"
+            print "ILRF does not exist"
+            print "making new ILRF"
             #こいつでフォレストを返すと全てが狂う
             return self.create_forest()
 
@@ -395,7 +430,7 @@ class ILRF:
         for i in range(38):
             self.lrforests += [ LRF(self.start_num, self.end_num-1, i) ]
        
-        sp_vec_path_list = CSVReader.get_path_list2("./output/csvpath/spdata_path_m"+self.m+"HSV.csv",0)
+        sp_vec_path_list = CSVReader.get_path_list2("./output/csvpath/spdata_path_m"+self.m+".csv",0)
         if (len(sp_vec_path_list)<self.end_num):
             print "end_num is larger than data length"
             return -1
@@ -406,14 +441,21 @@ class ILRF:
         
         print "making training data"
         for i in range(self.end_num - self.start_num):
+            
+            print "inputting",i,sp_vec_path_list[i]
             data = CSVReader.read_csv_as_float(sp_vec_path_list[i])
+            neighbors = CSVReader.read_csv_as_int(sp_neighbors_list[i])
+            probs = self.load_probs(data)
             label_col = len(data[0])-1
-            for line in data:
-                prob = []
-                for forest in self.lrforests:
-                    prob.extend( forest.get_prob (line[0:label_col]) )
-                print "prob",prob
-                trainingdata += [ prob ]
+            for j in range(len(data)):
+                vector = []
+                vector.extend( probs[j] )
+                vector.extend( probs[neighbors[j][0]] )
+                vector.extend( probs[neighbors[j][1]] )
+                vector.extend( probs[neighbors[j][2]] )
+                vector.extend( probs[neighbors[j][3]] )
+                #print "training vector",len(vector)
+                trainingdata += [ vector ]
                 if line[label_col] == self.label:
                     traininglabel +=[1]
                 else:
@@ -432,6 +474,29 @@ class ILRF:
     
         return self.forest
 
+
+    def load_probs(self, data):
+        if os.path.exists('./output/probs.csv'):
+            return CSVReader.read_csv_as_float('./output/probs.csv')
+        else :
+            output = []
+            label_col = len(data[0])-1
+            for line in data:
+                probs = []
+                #print line[0:label_col]
+                for forest in self.lrforests:
+                    probs.extend( forest.get_prob (line[0:label_col]) )
+                output += [probs]
+                #print "probs",probs
+            if not os.path.exists('./output'):
+                os.makedirs('./output')
+            f = open('./output/probs.csv', 'w')
+            writer = csv.writer(f, lineterminator='\n')
+            for line in output:
+                writer.writerow(line)
+            f.close()
+            return CSVReader.read_csv_as_float('./output/probs.csv')
+
     def predict(self, num):
 
 
@@ -446,13 +511,13 @@ class ILRF:
 
         
 
-        if os.path.exists(jpg_path+"_m"+self.m+"HSV.csv"):
+        if os.path.exists(jpg_path+"_m"+self.m+"spdata.csv"):
             print "exist",jpg_path
         else:
             cmd = u'"slic\SLICOSuperpixel.exe"'
             os.system(cmd+" "+ self.m + " "+jpg_path+" "+dep_path+" "+label_path+" "+ self.s_weight);
 
-        vec_data_path = jpg_path+"_m"+self.m+"HSV.csv"
+        vec_data_path = jpg_path+"_m"+self.m+"spdata.csv"
         sp_map_path = jpg_path+"_m"+self.m+"spmap.csv"
 
         data = CSVReader.read_csv_as_float(vec_data_path)
@@ -502,10 +567,10 @@ class ILRF:
 
     
     
-    def get_prob(self, sp_data):
+    def get_prob(self, probs):
         prob = []
         for forest in self.lrforests:
-            prob.extend( forest.get_prob ( sp_data ) )
+            prob.extend( forest.get_prob ( probs ) )
         output = self.forest.predict( [ prob ] )
         return output.tolist()
      
@@ -531,17 +596,16 @@ class LRF:
     forest_path = ""
     
     #warm_start こいつがすべてのバグの元凶
-    lrf = RandomForestRegressor(n_estimators = 5)
+    forest = RandomForestRegressor()
 
-    m = "3000"
-    cs = "4"
+    m = "1000"
     s_weight = "0"
 
     def __init__(self,start_num, end_num, label):
         self.start_num = start_num
         self.end_num = end_num +1
         self.label = label
-        self.forest_path = './supervised/label'+str(label)+'/HSVdata'+str(start_num)+'-'+str(end_num)
+        self.forest_path = './supervised/label'+str(label)+'/data'+str(start_num)+'-'+str(end_num)
         self.forest = self.laod_forest()
 
     def laod_forest(self):
@@ -556,10 +620,10 @@ class LRF:
 
     def create_forest(self):
 
-        forest = RandomForestRegressor(n_estimators = 5)
+        forest = RandomForestRegressor()
         
         #sp_vec_path_list = CSVReader.get_path_list2("./output/csvpath/spdata_path_m"+self.m+"cs"+self.cs+"w"+self.s_weight+".csv",0)
-        sp_vec_path_list = CSVReader.get_path_list2("./output/csvpath/spdata_path_m"+self.m+"HSV.csv",0)
+        sp_vec_path_list = CSVReader.get_path_list2("./output/csvpath/spdata_path_m"+self.m+".csv",0)
         
         if (len(sp_vec_path_list)<self.end_num):
             print "end_num is larger than data length"
@@ -585,9 +649,8 @@ class LRF:
                     traininglabel +=[0]
         print "training data Complete"
         
-        #
+        
         forest.fit(trainingdata , traininglabel )
-        self.show_detail()
         # Save 
         print "save to", self.forest_path
         if not os.path.exists(self.forest_path):
@@ -618,13 +681,13 @@ class LRF:
         print "inputting",jpg_path
         print "inputting",label_path
 
-        if os.path.exists(jpg_path+"_m"+self.m+"HSV.csv"):
+        if os.path.exists(jpg_path+"_m"+self.m+"spdata.csv"):
             print "exist",jpg_path
         else:
             cmd = u'"slic\SLICOSuperpixel.exe"'
             os.system(cmd+" "+self.m+" "+jpg_path+" "+dep_path+" "+label_path+" "+ self.s_weight);
 
-        vec_data_path = jpg_path+"_m"+self.m+"HSV.csv"
+        vec_data_path = jpg_path+"_m"+self.m+"spdata.csv"
         sp_map_path = jpg_path+"_m"+self.m+"spmap.csv"
 
       
@@ -683,7 +746,7 @@ class LRF:
     def data_statistics(self):
         if not os.path.exists('./output/statistics'):
             os.makedirs('./output/statistics')
-        sp_vec_path_list = CSVReader.get_path_list2("./output/csvpath/spdata_path_m3000cs4w0.csv",0)
+        sp_vec_path_list = CSVReader.get_path_list2("./output/csvpath/spdata_path_m1000.csv",0)
         for i in range(5000):
             f = open('./output/statistics/data'+str(i)+'.csv', 'w')
             writer = csv.writer(f, lineterminator='\n')
