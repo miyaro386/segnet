@@ -24,7 +24,8 @@ class MLF:
     layer_num = 0
     forest_path = ""
     #warm_start こいつがすべてのバグの元凶
-    forest = RandomForestClassifier()
+    forest = None
+
     m = "1000"
     s_weight = "0"
     
@@ -47,7 +48,7 @@ class MLF:
 
     def create_forest(self):
         
-        forest = RandomForestClassifier(n_estimators = 20)
+        forest = RandomForestClassifier(n_estimators = 10)
 
 
         sp_vec_path_list = CSVReader.get_path_list2("./output/csvpath/spdata_path_m"+self.m+".csv",0)
@@ -198,7 +199,7 @@ class MLF:
 
         test_data = []
 
-        probs = self.load_probs_for_predict(data, neighbors, self.layer_num)
+        probs = self.load_probs_for_predict(data, neighbors, self.layer_num , num)
         label_col = len(data[0])-1
         for j in range(len(data)):
             vector = []
@@ -222,11 +223,15 @@ class MLF:
         return [label_path ,Assessment.AssessmentByMIOU(img_a,img_b)]
 
 
-    def load_probs_for_predict(self, data, neighbors, layer_num):
+    def load_probs_for_predict(self, data, neighbors, layer_num, num):
       
         #(1)spDataをLRFを用いてprobs.csvに変換
             
-        if not os.path.exists('./output/probs.csv'): 
+        
+        if not os.path.exists('./output/probs_for_predict/base'):
+            os.makedirs('./output/probs_for_predict/base')
+        if not os.path.exists('./output/probs_for_predict/base/'+str(num)+'.csv'):
+
             forests = []
             for i in range(38):
                 forests += [ LRF(self.start_num, self.end_num-1, i) ]
@@ -239,9 +244,8 @@ class MLF:
                     probs.extend( f.get_prob (line[0:label_col]) )
                 output += [probs]
 
-            if not os.path.exists('./output'):
-                os.makedirs('./output')
-            f = open('./output/probs.csv', 'w')
+            
+            f = open('./output/probs_for_predict/base/'+str(num)+'.csv', 'w')
             writer = csv.writer(f, lineterminator='\n')
             for line in output:
                 writer.writerow(line)
@@ -251,52 +255,46 @@ class MLF:
         #(2)probs.csvをILRFを用いてlayer_numの回数分変換
         
         for layer in range(layer_num):
-            if os.path.exists('./output/probs_layer'+str(layer)+'.csv'):continue
-            forests = []
-            for label in range(38):
-                forests += [ ILRF(self.start_num, self.end_num-1, layer, label) ]
+            if not os.path.exists('./output/probs_for_predict/layer'+str(layer)):
+                os.makedirs('./output/probs_for_predict/layer'+str(layer))
+            if not os.path.exists('./output/probs_for_predict/layer'+str(layer)+'/'+str(num)+'.csv'):
 
-            if layer == 0:
-                src_probs = CSVReader.read_csv_as_float('./output/probs.csv')
-            else: 
-                src_probs = CSVReader.read_csv_as_float('./output/probs_layer'+str(layer-1)+'.csv')
-            dist_probs = []
-            for i in range(len(src_probs)):
-                vector = []
-                vector.extend( src_probs[i] )
-                vector.extend( src_probs[neighbors[i][0]] )
-                vector.extend( src_probs[neighbors[i][1]] )
-                vector.extend( src_probs[neighbors[i][2]] )
-                vector.extend( src_probs[neighbors[i][3]] )
-                probs = []
-                for f in forests:
-                    probs.extend( f.get_prob (vector) )
-                dist_probs += [probs]
+                forests = []
+                for label in range(38):
+                    forests += [ ILRF(self.start_num, self.end_num-1, layer, label) ]
+
+                if layer == 0:
+                    src_probs = CSVReader.read_csv_as_float('./output/probs_for_predict/base/'+str(num)+'.csv')
+                else: 
+                    src_probs = CSVReader.read_csv_as_float('./output/probs_for_predict/layer'+str(layer-1)+'/'+str(num)+'.csv')
+                dist_probs = []
+                for i in range(len(src_probs)):
+                    vector = []
+                    vector.extend( src_probs[i] )
+                    vector.extend( src_probs[neighbors[i][0]] )
+                    vector.extend( src_probs[neighbors[i][1]] )
+                    vector.extend( src_probs[neighbors[i][2]] )
+                    vector.extend( src_probs[neighbors[i][3]] )
+                    probs = []
+                    for f in forests:
+                        probs.extend( f.get_prob (vector) )
+                    dist_probs += [probs]
                     
-            if not os.path.exists('./output'):
-                os.makedirs('./output')
-            f = open('./output/probs_layer'+str(layer)+'.csv', 'w')
-            writer = csv.writer(f, lineterminator='\n')
-            for line in dist_probs:
-                writer.writerow(line)
-            f.close()
+
+                f = open('./output/probs_for_predict/layer'+str(layer)+'/'+str(num)+'.csv', 'w')
+                writer = csv.writer(f, lineterminator='\n')
+                for line in dist_probs:
+                    writer.writerow(line)
+                f.close()
 
 
         if layer_num == 0:
-            return CSVReader.read_csv_as_float('./output/probs.csv')
+            return CSVReader.read_csv_as_float('./output/probs_for_predict/base/'+str(num)+'.csv')
         else: 
-            return CSVReader.read_csv_as_float('./output/probs_layer'+str(layer_num-1)+'.csv')
+            return CSVReader.read_csv_as_float('./output/probs_for_predict/layer'+str(layer_num-1)+'/'+str(num)+'.csv')
 
     def output_file(self, output, sp_map , num):
-        #result =[]
-        #if not os.path.exists('./output'):
-        #    os.makedirs('./output')
-        #f = open('./output/outputmiou_mlf'+str(self.start_num)+'-'+str(self.end_num)+'l'+str(self.layer_num)+'data'+str(num)+'.csv', 'w')
-        #writer = csv.writer(f, lineterminator='\n')
-        #for line in result:
-        #    writer.writerow(result)
 
-        #f.close()
 
      
         
