@@ -150,20 +150,21 @@ def convert_sp_to_rgbdrate(m):
 
     if not os.path.exists('./output/csvpath'):
         os.makedirs('./output/csvpath')
-    f = open("./output/csvpath/spdata_path_m"+m+"HSV.csv", 'w')
+    f = open("./output/csvpath/spdata_path_m"+m+".csv", 'w')
     writer = csv.writer(f, lineterminator='\n')
-    print "making training HSV data"
-    for i in range(5000,5001):
-        #if os.path.exists(jpg_path[i]+"_m"+m+"HSV.csv"):
-        #    print "pass",i,jpg_path[i]
-        #else:
-        #    print "inputting",i,jpg_path[i]
-        #    os.system(cmd+" "+ m +" "+jpg_path[i]+" "+dep_path[i]+" "+label_path[i]+" 0");
-        print "inputting",i,jpg_path[i]
-        os.system(cmd+" "+ m +" "+jpg_path[i]+" "+dep_path[i]+" "+label_path[i]+" 0");
+    print "making training sp data"
+    temp = 4000
+    for i in range(temp,temp+1001):
+        if os.path.exists(jpg_path[i]+"_m"+m+"spdata.csv"):
+            print "pass",i,jpg_path[i]
+        else:
+            print "inputting",i,jpg_path[i]
+            os.system(cmd+" "+ m +" "+jpg_path[i]+" "+dep_path[i]+" "+label_path[i]+" 0");
+        ##print "inputting",i,jpg_path[i]
+        ##os.system(cmd+" "+ m +" "+jpg_path[i]+" "+dep_path[i]+" "+label_path[i]+" 0");
         
         
-    print "HSV data Complete"
+    print "spdata data Complete"
     f.close()
 
 def sp_data_path(m):
@@ -180,7 +181,7 @@ def sp_data_path(m):
 
     if not os.path.exists('./output/csvpath'):
         os.makedirs('./output/csvpath')
-    f = open("./output/csvpath/spdata_path_m"+m+"HSV.csv", 'w')
+    f = open("./output/csvpath/spdata_path_m"+m+".csv", 'w')
     writer = csv.writer(f, lineterminator='\n')
 
     for i in range(5001):
@@ -188,7 +189,7 @@ def sp_data_path(m):
         jpg_path.append(src_jpg_path[2*i+1])
         dep_path.append(src_dep_path[2*i+1])
         label_path.append(src_label_path[2*i+1])
-        line = [jpg_path[i]+"_m"+m+"HSV.csv",jpg_path[i]+"_m"+m+"spmap.csv",jpg_path[i]+"_m"+m+"neighbors.csv"]
+        line = [jpg_path[i]+"_m"+m+"spdata.csv",jpg_path[i]+"_m"+m+"spmap.csv",jpg_path[i]+"_m"+m+"neighbors.csv"]
         writer.writerow(line)
 
 def chk_spdata():

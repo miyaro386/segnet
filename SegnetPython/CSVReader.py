@@ -47,7 +47,7 @@ def read_csv_as_int(CSV_FILE_PATH):
     for line in dataReader:
         list = []
         for item in line:
-            list.append(int(item))
+            list.append(int(float(item)))
         data.append(list)
 
     return data
@@ -60,9 +60,9 @@ def read_csv_as_float(CSV_FILE_PATH):
     for line in dataReader:
         list = []
         for item in line:
-            if (item.replace(".","").isdigit() == False) :
-                list.append(0)
-                continue
+            #if (item.replace(".","").isdigit() == False) :
+            #    list.append(0)
+            #    continue
             list.append(float(item))
         data.append(list)
         #print list
