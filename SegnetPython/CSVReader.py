@@ -18,7 +18,7 @@ def read_csv(CSV_FILE_PATH):
 def get_path_list(CSV_FILE_PATH,ROOT_FILE_PATH, number):
     csv_data = read_csv(CSV_FILE_PATH)
     path_list = []
-    print csv_data
+    #print csv_data
     for line in csv_data:
         #print line
         path = line[number]
@@ -30,7 +30,7 @@ def get_path_list(CSV_FILE_PATH,ROOT_FILE_PATH, number):
 def get_path_list2(CSV_FILE_PATH, number):
     csv_data = read_csv(CSV_FILE_PATH)
     path_list = []
-    print csv_data
+    #print csv_data
     for line in csv_data:
         #print line
         path = line[number]

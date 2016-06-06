@@ -12,7 +12,7 @@ import csv
 import ImgToVec
 import CSVReader
 import Assessment
-
+import time
 
 
 
@@ -23,7 +23,8 @@ class ILRF:
     layer = 0
     label = 0
     forest_path = ""
-    forest = RandomForestRegressor()
+    forest = None
+
     m = "1000"
     s_weight = "0"
     
@@ -45,8 +46,8 @@ class ILRF:
             return self.create_forest()
 
     def create_forest(self):
-        
-        forest = RandomForestRegressor(n_estimators = 20)
+        start_time = time.time()
+        forest = RandomForestRegressor(n_estimators = 10)
 
        
         sp_vec_path_list = CSVReader.get_path_list2("./output/csvpath/spdata_path_m"+self.m+".csv",0)
@@ -60,7 +61,7 @@ class ILRF:
         trainingdata = []
         traininglabel = []
         
-        print "making training data",self.layer
+        print "ILRF making training data Layer",self.layer,'Label',self.label
         for i in range(self.start_num ,self.end_num):
             
             #print "inputting",i,sp_vec_path_list[i]
@@ -95,7 +96,8 @@ class ILRF:
         if not os.path.exists(self.forest_path):
             os.makedirs(self.forest_path)
         joblib.dump(forest, self.forest_path+'/forest.bin')
-    
+        
+        print 'InterLabelRondomForest layer',self.layer,'Label', self.label,'Complete' ,time.time() - start_time
         return forest
 
 

@@ -11,7 +11,7 @@ import csv
 import ImgToVec
 import CSVReader
 import Assessment
-
+import time
 
 
 
@@ -23,10 +23,8 @@ class LRF:
     end_num = 0
     label =0
     forest_path = ""
+    forest = None
     
-    #warm_start ‚±‚¢‚Â‚ª‚·‚×‚Ä‚ÌƒoƒO‚ÌŒ³‹¥
-    forest = RandomForestRegressor()
-
     m = "1000"
     s_weight = "0"
 
@@ -48,8 +46,9 @@ class LRF:
 
 
     def create_forest(self):
+        start_time= time.time()
 
-        forest = RandomForestRegressor(n_estimators = 20)
+        forest = RandomForestRegressor(n_estimators = 10)
         
         #sp_vec_path_list = CSVReader.get_path_list2("./output/csvpath/spdata_path_m"+self.m+"cs"+self.cs+"w"+self.s_weight+".csv",0)
         sp_vec_path_list = CSVReader.get_path_list2("./output/csvpath/spdata_path_m"+self.m+".csv",0)
@@ -66,7 +65,7 @@ class LRF:
         n_count = 0
         print "making training data"
         for i in range(self.start_num ,self.end_num):
-            #print "inputting",i,sp_vec_path_list[i]
+            #print i,"inputting",i,sp_vec_path_list[i]
             data = CSVReader.read_csv_as_float(sp_vec_path_list[i])
             #self.data_deteil(sp_vec_path_list[i],i)
             label_col = len(data[0])-1
@@ -85,7 +84,8 @@ class LRF:
         if not os.path.exists(self.forest_path):
             os.makedirs(self.forest_path)
         joblib.dump(forest, self.forest_path+'/forest.bin')
-    
+        
+        print 'LabelRandomForest',self.label,'Complete',time.time() - start_time
         return forest
 
     
@@ -152,8 +152,6 @@ class LRF:
         print "n_features",self.forest.n_features_
         print "n_outputs_",self.forest.n_outputs_
         print "feature_importances_",self.forest.feature_importances_
-        # print "oob_score_",self.forest.oob_score_
-        # print "oob_decision_function_",self.forest.oob_decision_function_
 
 
     def combine(self, forest):

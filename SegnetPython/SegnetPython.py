@@ -1,94 +1,168 @@
-feature_importances_ [  1.86757648e-02   2.78707520e-03   2.31973646e-03   2.50656429e-03
-   3.89900871e-02   1.58076917e-03   1.92864644e-03   0.00000000e+00
-   0.00000000e+00   0.00000000e+00   0.00000000e+00   0.00000000e+00
-   0.00000000e+00   0.00000000e+00   0.00000000e+00   0.00000000e+00
-   0.00000000e+00   0.00000000e+00   0.00000000e+00   0.00000000e+00
-   5.75951764e-03   3.41986826e-03   9.82194578e-04   6.48174597e-04
-   2.66730695e-03   8.41143702e-04   0.00000000e+00   0.00000000e+00
-   0.00000000e+00   2.10467184e-03   3.32912058e-03   0.00000000e+00
-   0.00000000e+00   0.00000000e+00   0.00000000e+00   0.00000000e+00
-   0.00000000e+00   0.00000000e+00   7.17399588e-04   1.11774023e-03
-   1.60267130e-04   4.44043448e-03   3.33976117e-03   5.66854527e-04
-   1.38559464e-03   2.14133045e-03   4.41363895e-03   6.71228186e-04
-   2.13923252e-03   5.96648586e-03   1.14242294e-03   5.46809544e-03
-   0.00000000e+00   0.00000000e+00   7.01500547e-04   0.00000000e+00
-   3.09149750e-02   4.23752510e-01   1.62495638e-03   0.00000000e+00
-   9.14347618e-02   6.42730021e-03   1.45634739e-01   3.97373204e-02
-   7.46992875e-02   3.46593843e-02   8.64345816e-03   7.89686683e-03
-   7.52792634e-03   4.13388609e-03]
 
-feature_importances_ [  2.16243635e-02   4.16324447e-03   2.63288952e-03   1.53531865e-02
-   2.33694105e-02   3.60885935e-04   3.41410630e-04   2.22229466e-03
-   2.51471525e-04   0.00000000e+00   0.00000000e+00   0.00000000e+00
-   0.00000000e+00   0.00000000e+00   0.00000000e+00   0.00000000e+00
-   0.00000000e+00   0.00000000e+00   0.00000000e+00   0.00000000e+00
-   2.64045101e-04   2.64010483e-03   2.25004104e-03   1.06814298e-03
-   6.50667711e-04   1.19826159e-03   0.00000000e+00   0.00000000e+00
-   7.25012189e-04   3.70389955e-03   0.00000000e+00   0.00000000e+00
-   0.00000000e+00   0.00000000e+00   0.00000000e+00   0.00000000e+00
-   0.00000000e+00   2.57758313e-04   0.00000000e+00   4.85236244e-04
-   0.00000000e+00   2.23868259e-03   1.84526554e-03   1.70709715e-03
-   2.00207085e-03   3.64296704e-03   2.75390769e-03   2.29857776e-03
-   2.04602950e-03   4.89858742e-03   2.06450899e-03   3.05527839e-03
-   0.00000000e+00   0.00000000e+00   1.19023185e-04   8.04708879e-04
-   4.11005566e-02   4.20475282e-01   0.00000000e+00   0.00000000e+00
-   7.36548143e-02   6.67642623e-03   1.43351329e-01   3.46871315e-02
-   9.10326106e-02   5.63517163e-02   3.87732923e-03   4.40862745e-03
-   7.57008210e-03   3.77506236e-03]
+# coding=utf_8
 
-feature_importances_ [  3.01796638e-03   2.72638005e-03   1.13877694e-03   1.26960948e-03
-   5.04323805e-03   2.64315645e-03   3.35649795e-03   6.60197065e-04
-   3.28675301e-03   0.00000000e+00   0.00000000e+00   0.00000000e+00
-   0.00000000e+00   0.00000000e+00   0.00000000e+00   0.00000000e+00
-   0.00000000e+00   0.00000000e+00   0.00000000e+00   0.00000000e+00
-   1.83827069e-01   3.92189603e-03   2.12713711e-03   2.17649550e-04
-   5.91950384e-04   0.00000000e+00   0.00000000e+00   0.00000000e+00
-   0.00000000e+00   0.00000000e+00   0.00000000e+00   0.00000000e+00
-   0.00000000e+00   0.00000000e+00   0.00000000e+00   0.00000000e+00
-   0.00000000e+00   1.05104877e-05   8.22568029e-04   4.61678929e-04
-   1.17175696e-03   5.05495483e-04   2.05708004e-03   3.57078203e-03
-   1.36620781e-02   3.73847904e-03   6.57825642e-03   1.53639097e-03
-   1.88331514e-03   1.09825512e-03   0.00000000e+00   0.00000000e+00
-   0.00000000e+00   0.00000000e+00   2.04324535e-03   1.25586619e-03
-   7.72840731e-04   1.88668211e-03   0.00000000e+00   0.00000000e+00
-   3.35796869e-03   2.04269276e-01   5.86824533e-03   5.29541936e-03
-   2.14540017e-02   4.91705656e-01   1.88115482e-03   5.35292289e-03
-   2.27620214e-03   1.65559366e-03]
+import cv2
+import numpy as np
+from numba import autojit
+import csv
+import ImgToVec
+import CSVReader
+import os
+from sklearn.ensemble import RandomForestClassifier
+from InterLabelRandomForest import ILRF
+from Forest import MLRF
+from Forest import CLRF
+import Converter
+from SPRF import SPRF
+from MultiLayerForest import MLF
+from LabelRandomForest import LRF
+
+
+
+
+
+#ImgToVec.sp_data_path("3000","4","0")
+
+result = []
+
+#forest = MLF(0,2500,0)
+#for i in range(5):
+#    result += [forest.predict(2000+i)]
+#if not os.path.exists('./output'):
+#    os.makedirs('./output')
+#f = open('./output/outputMIOU_MLF0-2500Layer'+str(0)+'data2000-2004.csv', 'w')
+#writer = csv.writer(f, lineterminator='\n')
+#for line in result:
+#    writer.writerow(line)
+#f.close()
+
+#for label in range(38):
+#    forest = LRF(0,500,label)
+#    for j in [500,1000,1500,2000]:
+#        forest.combine( LRF(j,j+500,label) )
+#    forest.save_combined_forest(0,2500)
+
+#for layer_num in range(1):
+#    forest = MLF(0,500,layer_num)
+#    for j in [500,1000,1500,2000]:
+#        forest.combine( MLF(j,j+500,layer_num) )
+#    forest.save_combined_forest(0,2500)
+
+#for i in range(38):
+#    forest = ILRF(0,0,0,i)
+#    forest.forest = forest.create_forest()
+#    tmp_forest = ILRF(1,1,0,i)
+#    tmp_forest.forest = tmp_forest.create_forest()
+#    forest.combine(tmp_forest )
+#    forest.save_combined_forest(0,1)
+
+#for layer_num in range(10):
+#    result = []
+#    forest = MLF(0,1000,layer_num)
+#    for i in [1000,2000,3000,4000]:
+#        forest.combine( MLF(i,i+1000,layer_num) )
+#    forest.save_combined_forest(0,5000)
+
+#    for i in range(100):
+#        result += [forest.predict(i)]
+
+#    if not os.path.exists('./output'):
+#        os.makedirs('./output')
+#    f = open('./output/outputMIOU_MLF0-5000Layer'+str(layer_num)+'data0-99.csv', 'w')
+#    writer = csv.writer(f, lineterminator='\n')
+#    for line in result:
+#        writer.writerow(result)
+
+start_num = 2000
+end_num = start_num + 500
+for layer_num in range(50):
+    result = []
+    forest = MLF(start_num,end_num,layer_num)
+
+    #for i in range(10):
+    #    result += [forest.predict(2000+i)]
+    #if not os.path.exists('./output'):
+    #    os.makedirs('./output')
+    #f = open('./output/outputMIOU_MLF'+str(start_num)+'-'+str(end_num)+'Layer'+str(layer_num)+'data'+str(start_num)+'+10.csv', 'w')
+    #writer = csv.writer(f, lineterminator='\n')
+    #for line in result:
+    #    writer.writerow(line)
+
+
+
+#for i in [ "3000","5000","10000"]:
+#    print i
+#    ImgToVec.convert_sp_to_rgbdrate(i,cs,weight)
+
+
+#ImgToVec.convert_sp_to_rgbdrate(m)
+#ImgToVec.sp_data_path(m)
+
+#data_num = 0
+#start_num = 0
+#end_num = 2500
+#for layer_num in range(50):
+#    forest = MLF(start_num,end_num,layer_num)
+#    result += [forest.predict(0)] 
+#    if not os.path.exists('./output'):
+#        os.makedirs('./output')
+#    f = open('./output/outputMIOU_MLF'+str(start_num)+'-'+str(end_num)+'l'+str(layer_num)+'data'+str(data_num)+'.csv', 'w')
+#    writer = csv.writer(f, lineterminator='\n')
+#    for line in result:
+#        writer.writerow(result)
+
+#    f.close()
+
+
+#start_num = 0
+#end_num = 1
+#layer_num = 0
+#data_num = 10
+
+
+#for i in range(38):
+#    ilrf = ILRF(0,500,0,i)
+#    for j in [500,1000,1500]:
+#        ilrf.combine(ILRF(j,j+500,0,i))
+
+#    ilrf.save_combined_forest(0,2000)
+ 
+
+
+
+
+
+#start_num = 0
+#end_num = 2000
+#layer_num = 1
+#data_num = 10
+#forest = MLF(start_num,end_num,layer_num)
+#result += [forest.predict(data_num)] 
+
+
+
+
+
+#labelmap = "img.jpg_m300spmap.csv"
+#data= CSVReader.read_csv_as_int(labelmap)
+#size = [ len (data) , len(data[0] ) ]
+#if not os.path.exists('./output'):
+#    os.makedirs('./output')
+#print "size0",size[0]
+#print "size1",size[1]
+#dstimg = np.zeros((size[0],size[1],3), np.uint8)
    
-   feature_importances_ [  1.44809484e-02   3.47866588e-03   1.00209017e-02   3.76555361e-03
-   3.20815094e-02   2.91894248e-03   2.27085346e-03   3.93669995e-04
-   9.09347820e-04   0.00000000e+00   0.00000000e+00   0.00000000e+00
-   0.00000000e+00   0.00000000e+00   0.00000000e+00   0.00000000e+00
-   0.00000000e+00   0.00000000e+00   0.00000000e+00   0.00000000e+00
-   7.01546261e-04   8.49663911e-03   4.17560383e-04   1.44848690e-03
-   1.25753079e-03   5.02917808e-04   0.00000000e+00   0.00000000e+00
-   8.89506947e-04   2.86276011e-04   9.83452037e-04   0.00000000e+00
-   0.00000000e+00   0.00000000e+00   0.00000000e+00   0.00000000e+00
-   0.00000000e+00   0.00000000e+00   0.00000000e+00   9.07960400e-04
-   7.64751151e-04   2.39578919e-03   6.72904127e-04   1.49317116e-03
-   1.53203613e-03   3.72195200e-03   3.98458038e-03   1.89127753e-03
-   2.23126385e-03   7.45560139e-03   3.41880161e-03   3.91040180e-03
-   0.00000000e+00   0.00000000e+00   8.82412992e-04   3.69065620e-04
-   4.62399831e-02   4.21050500e-01   2.36346112e-03   0.00000000e+00
-   7.54413114e-02   7.57672171e-03   1.48516916e-01   3.09647156e-02
-   9.19705466e-02   3.39379823e-02   8.16532305e-03   3.25508619e-03
-   5.19779867e-03   4.38337622e-03]
-   
-   feature_importances_ [  3.02223075e-03   7.02028175e-04   4.75944715e-03   1.27002908e-03
-   5.06118625e-03   0.00000000e+00   7.89098623e-03   5.00183921e-04
-   2.63365301e-03   0.00000000e+00   0.00000000e+00   0.00000000e+00
-   0.00000000e+00   0.00000000e+00   0.00000000e+00   0.00000000e+00
-   0.00000000e+00   0.00000000e+00   0.00000000e+00   0.00000000e+00
-   1.25669934e-01   1.63523547e-03   2.85764803e-03   7.99513025e-04
-   0.00000000e+00   1.07680438e-03   0.00000000e+00   0.00000000e+00
-   0.00000000e+00   0.00000000e+00   0.00000000e+00   0.00000000e+00
-   0.00000000e+00   0.00000000e+00   0.00000000e+00   0.00000000e+00
-   0.00000000e+00   9.50643511e-04   0.00000000e+00   1.66013805e-03
-   1.17200073e-03   5.52879815e-03   4.04451500e-03   3.00653446e-03
-   1.52730324e-02   3.08510005e-03   8.82696261e-03   1.40712174e-03
-   1.44469369e-03   0.00000000e+00   8.87503921e-04   0.00000000e+00
-   0.00000000e+00   0.00000000e+00   7.28764623e-04   8.92585958e-04
-   2.41127943e-04   6.76073266e-04   0.00000000e+00   0.00000000e+00
-   3.31335570e-03   2.61597463e-01   3.03350542e-02   8.00615294e-03
-   1.84819938e-02   4.63304991e-01   1.59780941e-03   3.24393302e-03
-   1.62938206e-03   7.85389043e-04]
+#for y in range(size[0]):
+#    for x in range(size[1]):
+                
+#        dstimg.itemset((y,x,0),int(data[y][x])*2)
+#        dstimg.itemset((y,x,1),int(data[y][x])*2)
+#        dstimg.itemset((y,x,2),int(data[y][x])*2)
+        
+#cv2.imwrite('output_data.png',dstimg)
+
+
+
+
+
+

@@ -14,7 +14,7 @@ import CSVReader
 import Assessment
 from InterLabelRandomForest import ILRF
 from LabelRandomForest import LRF
-
+import time
 
 
 
@@ -23,7 +23,6 @@ class MLF:
     end_num = 0
     layer_num = 0
     forest_path = ""
-    #warm_start こいつがすべてのバグの元凶
     forest = None
 
     m = "1000"
@@ -47,8 +46,9 @@ class MLF:
             return self.create_forest()
 
     def create_forest(self):
-        
-        forest = RandomForestClassifier(n_estimators = 10)
+        start_time= time.time()
+
+        forest = RandomForestClassifier(n_estimators = 10, class_weight = 'balanced')
 
 
         sp_vec_path_list = CSVReader.get_path_list2("./output/csvpath/spdata_path_m"+self.m+".csv",0)
@@ -61,7 +61,7 @@ class MLF:
         trainingdata = []
         traininglabel = []
         
-        print "making training data MLF"
+        print "making training data MLF : Layer",self.layer_num
         for i in range(self.start_num ,self.end_num):
             print "inputting",i,sp_vec_path_list[i]
             #ある画像に対するスーパーピクセルのデータ集合
@@ -84,15 +84,21 @@ class MLF:
 
         print "training data Complete"
  
+        #別のランダムフォレストとclassが一致しないとエラーを吐くので、
+        #0埋めした38ラベル分のtrainingdata , traininglabelセットを追加する
+        for i in range(38):
+            trainingdata += [ np.zeros_like(trainingdata[0])]
+            traininglabel+= [i]
 
         forest.fit(trainingdata , traininglabel )
-        
+
         # Save 
         print "save to", self.forest_path
         if not os.path.exists(self.forest_path):
             os.makedirs(self.forest_path)
         joblib.dump(forest, self.forest_path+'/forest.bin')
     
+        print 'MultiLayerForest Layer',self.layer_num,'Complete', time.time() - start_time
         return forest
     
     #layer_numの回数だけprobs.csvのデータの変換を繰り返す
@@ -101,7 +107,10 @@ class MLF:
         #(1)spDataをLRFを用いてprobs.csvに変換
         forests = []
         for i in range(38):
+            #print 'LRF',i
+            
             forests += [ LRF(self.start_num, self.end_num-1, i) ]
+            
 
         for i in range(self.start_num, self.end_num):
             if not os.path.exists('./output/probs/base'):
@@ -130,7 +139,7 @@ class MLF:
         for layer in range(layer_num):
             forests = []
             for label in range(38):
-                print 'ILRF',label
+                #print 'ILRF',label
                 forests += [ ILRF(self.start_num, self.end_num-1, layer, label) ]
 
             for n in range(self.start_num, self.end_num):
@@ -210,17 +219,19 @@ class MLF:
             vector.extend( probs[neighbors[j][3]] )
             test_data += [ vector ]
             #print len(vector)
+            #if len(vector) != 190:
+            #    raw_input(">>")
 
         print "test data Complete"
      
         #print len(test_data), len(test_data[0])
-        self.show_detail()
+        #self.show_detail()
         output = self.forest.predict( test_data )
         self.output_file(output, sp_map, num)
 
         img_a = cv2.imread(label_path,0)
-        img_b = cv2.imread('output_MLF'+str(self.start_num)+'-'+str(self.end_num)+'_layer'+str(self.layer_num)+'data'+str(num)+'.png',0)
-        return [label_path ,Assessment.AssessmentByMIOU(img_a,img_b)]
+        img_b = cv2.imread('output_MLF'+str(self.start_num)+'-'+str(self.end_num-1)+'_layer'+str(self.layer_num)+'data'+str(num)+'.png',0)
+        return [jpg_path, label_path ,Assessment.AssessmentByMIOU(img_a,img_b)]
 
 
     def load_probs_for_predict(self, data, neighbors, layer_num, num):
@@ -294,10 +305,6 @@ class MLF:
             return CSVReader.read_csv_as_float('./output/probs_for_predict/layer'+str(layer_num-1)+'/'+str(num)+'.csv')
 
     def output_file(self, output, sp_map , num):
-
-
-     
-        
         size =  [len(sp_map), len(sp_map[0])]  
         dstimg = np.zeros((size[0],size[1],3), np.uint8)
         count = 0
@@ -309,12 +316,20 @@ class MLF:
                 dstimg.itemset((y,x,2),output[sp_map[y][x]])
                 count+=1
         
-        cv2.imwrite('output_MLF'+str(self.start_num)+'-'+str(self.end_num)+'_layer'+str(self.layer_num)+'data'+str(num)+'.png',dstimg)
+        cv2.imwrite('output_MLF'+str(self.start_num)+'-'+str(self.end_num-1)+'_layer'+str(self.layer_num)+'data'+str(num)+'.png',dstimg)
 
 
     def combine(self, forest):
         self.forest.estimators_ += forest.forest.estimators_
         self.forest.n_estimators = len(self.forest.estimators_)
+       
+        #print 'class1 list', self.forest.classes_
+        #print 'class2 list' ,forest.forest.classes_
+        #s =  set(self.forest.classes_)
+        #s.union(set(forest.forest.classes_))
+        #self.forest.classes_ = list(s)
+        #print 'combined list' ,self.forest.classes_ 
+        #self.forest.n_classes_ = len(self.forest.classes_)
         return self.forest
 
 
